@@ -14,7 +14,6 @@ services:
         condition: service_healthy
     networks:
       - synaptic-network
-      - housekeeping
     restart: always
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
@@ -27,6 +26,7 @@ services:
       - "traefik.http.routers.synaptic-prod.rule=Host(`synaptic.localhost`)"
       - "traefik.http.routers.synaptic-prod.entrypoints=web"
       - "traefik.http.services.synaptic-prod.loadbalancer.server.port=8000"
+      - "traefik.docker.network=synaptic-network"
     deploy:
       resources:
         limits:
@@ -44,7 +44,6 @@ services:
       - redis-data-prod:/data
     networks:
       - synaptic-network
-      - housekeeping
     restart: always
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
@@ -85,5 +84,3 @@ volumes:
 networks:
   synaptic-network:
     driver: bridge
-  housekeeping:
-    external: true

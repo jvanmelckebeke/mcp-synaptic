@@ -12,7 +12,6 @@ services:
         condition: service_healthy
     networks:
       - synaptic-network
-      - housekeeping
     restart: unless-stopped
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8000/health" ]
@@ -25,6 +24,7 @@ services:
       - "traefik.http.routers.synaptic.rule=Host(`synaptic.localhost`)"
       - "traefik.http.routers.synaptic.entrypoints=web"
       - "traefik.http.services.synaptic.loadbalancer.server.port=8000"
+      - "traefik.docker.network=synaptic-network"
 
   redis:
     image: redis:7-alpine
@@ -34,7 +34,6 @@ services:
       - ./data/redis:/data
     networks:
       - synaptic-network
-      - housekeeping
     restart: unless-stopped
     healthcheck:
       test: [ "CMD", "redis-cli", "ping" ]
@@ -52,7 +51,6 @@ services:
       - redis
     networks:
       - synaptic-network
-      - housekeeping
     restart: unless-stopped
     profiles:
       - dev
@@ -61,10 +59,9 @@ services:
       - "traefik.http.routers.redis-commander.rule=Host(`redis.synaptic.localhost`)"
       - "traefik.http.routers.redis-commander.entrypoints=web"
       - "traefik.http.services.redis-commander.loadbalancer.server.port=8081"
+      - "traefik.docker.network=synaptic-network"
 
 
 networks:
   synaptic-network:
     driver: bridge
-  housekeeping:
-    external: true
