@@ -161,3 +161,32 @@ EMBEDDING_MODEL=all-MiniLM-L6-v2
 - Database operations should use the storage abstraction layer
 - External API calls need proper timeout and retry logic
 - Memory operations should validate TTL and data size limits
+
+## Task Management & Development Workflow
+
+**GitHub Issues & Projects:**
+- Use GitHub issues as task board for all development work
+- Create GitHub Projects kanban board with columns: todo, selected for dev, doing, review, done
+- Follow workflow: create issue → add to project → select for dev → implement → commit regularly → close issue
+
+**Development Process:**
+1. Create GitHub issue for feature/fix with detailed description and acceptance criteria
+2. Add issue to GitHub project: `gh project item-add <project-id> --owner <username> --url <issue-url>`
+3. Move to "selected for dev" and start implementation
+4. Commit regularly with descriptive messages ending with Claude Code signature
+5. Close issue when complete: `gh issue close <issue-number> --comment "Description of completion"`
+
+**Traefik Integration Workflow:**
+- Use existing Traefik instance instead of adding new containers
+- Check running containers: `docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Ports}}" | grep -i traefik`
+- Remove port mappings from services, add Traefik labels instead:
+  ```yaml
+  labels:
+    - "traefik.enable=true"
+    - "traefik.http.routers.service-name.rule=Host(`service.domain.localhost`)"
+    - "traefik.http.routers.service-name.entrypoints=web"
+    - "traefik.http.services.service-name.loadbalancer.server.port=8000"
+    - "traefik.docker.network=project-network"  # Tell Traefik which network to use
+  ```
+- Use `traefik.docker.network` label instead of adding external networks to avoid coupling
+- Keep services in their own project network for isolation
