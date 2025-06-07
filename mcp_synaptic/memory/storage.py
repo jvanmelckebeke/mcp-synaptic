@@ -15,7 +15,7 @@ from redis.asyncio import Redis
 from ..config.logging import LoggerMixin
 from ..config.settings import Settings
 from ..core.exceptions import ConnectionError, DatabaseError, MemoryError
-from .types import Memory, MemoryQuery, MemoryStats
+from ..models.memory import Memory, MemoryQuery, MemoryStats
 
 
 class MemoryStorage(ABC, LoggerMixin):

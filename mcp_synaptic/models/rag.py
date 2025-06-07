@@ -2,7 +2,7 @@
 
 from typing import Any, Dict, List, Optional
 
-from pydantic import Field, validator
+from pydantic import Field, field_validator
 
 from .base import (
     IdentifiedModel, 
@@ -153,8 +153,9 @@ class DocumentCreateRequest(SynapticBaseModel):
         description="Custom document ID (auto-generated if not provided)"
     )
     
-    @validator('content')
-    def content_not_empty(cls, v):
+    @field_validator('content')
+    @classmethod
+    def content_not_empty(cls, v: str) -> str:
         if not v.strip():
             raise ValueError('Content cannot be empty')
         return v
@@ -172,8 +173,9 @@ class DocumentUpdateRequest(SynapticBaseModel):
         description="New metadata (replaces existing)"
     )
     
-    @validator('content')
-    def content_not_empty(cls, v):
+    @field_validator('content')
+    @classmethod
+    def content_not_empty(cls, v: Optional[str]) -> Optional[str]:
         if v is not None and not v.strip():
             raise ValueError('Content cannot be empty')
         return v

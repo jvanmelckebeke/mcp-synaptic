@@ -4,7 +4,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-from pydantic import Field, validator
+from pydantic import Field, field_validator
 
 from .base import IdentifiedModel, PaginatedResponse, StatsModel, SynapticBaseModel
 

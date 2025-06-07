@@ -36,7 +36,7 @@ class Settings(BaseSettings):
         default="redis://localhost:6379/0", description="Redis connection URL"
     )
     REDIS_ENABLED: bool = Field(
-        default=True, description="Enable Redis for distributed memory"
+        default=False, description="Enable Redis for distributed memory"
     )
 
     # Memory Configuration
@@ -61,7 +61,7 @@ class Settings(BaseSettings):
         default=None, description="Embedding API key"
     )
     EMBEDDING_PROVIDER: str = Field(
-        default="local", description="Embedding provider: 'local' or 'api'"
+        default="api", description="Embedding provider: 'local' or 'api'"
     )
     MAX_RAG_RESULTS: int = Field(
         default=10, description="Maximum RAG search results"

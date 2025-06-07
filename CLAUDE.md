@@ -142,10 +142,27 @@ All Dockerfiles must demonstrate expert-level containerization practices:
 - BuildKit features utilization for advanced patterns
 - Enterprise-grade configuration (health checks, proper signal handling)
 
-**Deployment Variants:**
-- `docker-compose.yml` - Basic setup
-- `docker-compose.dev.yml` - Development with Redis commander
-- `docker-compose.prod.yml` - Production optimizations
+**Docker Compose Structure:**
+- `docker/docker-compose.yaml` - Base configuration (standard ports)
+- `docker/overrides/laptop.yaml` - Traefik HTTP entrypoint override
+- `docker/overrides/desktop.yaml` - Traefik WEB entrypoint override
+- `docker/variants/dev.yaml` - Development variant (Redis commander, debug)
+- `docker/variants/prod.yaml` - Production variant (optimized resources)
+
+**Usage Examples:**
+```bash
+# Standard (ports exposed)
+cd docker && docker-compose up -d
+
+# Laptop (Traefik HTTP)
+cd docker && docker-compose -f docker-compose.yaml -f overrides/laptop.yaml up -d
+
+# Desktop (Traefik WEB)  
+cd docker && docker-compose -f docker-compose.yaml -f overrides/desktop.yaml up -d
+
+# Development mode
+cd docker && docker-compose -f docker-compose.yaml -f overrides/laptop.yaml -f variants/dev.yaml up -d
+```
 
 **Important Notes:**
 - Default embedding provider is API-based to keep containers lightweight
@@ -153,6 +170,13 @@ All Dockerfiles must demonstrate expert-level containerization practices:
 - Redis is optional - SQLite works fine for single-instance deployments
 
 ## Development Workflow
+
+**Backward Compatibility Policy:**
+- **DO NOT** consider backward compatibility when making architectural changes
+- This is a new project with rapidly evolving architecture
+- Prioritize clean, maintainable code over preserving legacy interfaces
+- Breaking changes are acceptable and expected during early development
+- Focus on getting the architecture right rather than maintaining compatibility with previous versions
 
 **Code Quality:**
 - Pre-commit hooks run mypy, ruff, and black automatically
@@ -188,6 +212,81 @@ All Dockerfiles must demonstrate expert-level containerization practices:
 4. Commit regularly with descriptive messages ending with Claude Code signature
 5. Close issue when complete: `gh issue close <issue-number> --comment "Description of completion"`
 
+**GitHub Issue Feedback Loop Workflow (Complex Tasks):**
+For major architectural changes, refactors, or complex implementations:
+
+1. **Issue Creation**: Create detailed GitHub issue with problem analysis, solution requirements, and implementation plan
+2. **Progress Logging**: Use `gh issue comment <issue-number> --body "progress update"` throughout implementation to:
+   - Log each major step attempted (Step 1: Analysis, Step 2: Implementation, etc.)
+   - Document what works and what doesn't work
+   - Record error messages, solutions tried, and outcomes
+   - Keep running commentary of approach and decision-making process
+3. **Real-time Documentation**: Update issue comments with:
+   - Architectural decisions and reasoning
+   - Code changes and their impact
+   - Testing results and verification steps
+   - Breakthrough moments and roadblocks encountered
+4. **User Verification**: Do NOT close issue yourself - ask user to verify functionality first
+5. **Final Closure**: Only close issue after user confirms success: `gh issue close <issue-number> --comment "Success confirmation"`
+
+**Benefits of GitHub Issue Feedback Loop:**
+- Creates permanent record of implementation process
+- Allows user to follow progress in real-time
+- Documents decision-making process for future reference
+- Builds confidence through transparency
+- Enables early course correction if approach is wrong
+- Provides detailed post-mortem for successful implementations
+
+**When to Use Issue Feedback Loop:**
+- Architectural refactors (like the FastMCP migration)
+- Major feature implementations
+- Complex debugging sessions
+- Performance optimization projects  
+- Any task expected to take >30 minutes with multiple steps
+
+## CRITICAL: When to STOP and Ask for User Feedback
+
+**MANDATORY STOP Points - DO NOT PROCEED WITHOUT USER INPUT:**
+
+1. **External Service Dependencies**
+   - When encountering connection failures to external services (APIs, databases, etc.)
+   - Example: "Cannot connect to host 172.17.0.1:4000" for embedding API
+   - **STOP** and ask user about their specific service setup (localhost vs litellm.lan vs other)
+   - Do NOT assume service locations or create new services without permission
+
+2. **Deprecated/Changed Framework Features**  
+   - When discovering deprecated features that affect architecture decisions
+   - Example: FastMCP SSE transport deprecation discovery
+   - **STOP** and ask user about their compatibility requirements before proceeding
+   - Do NOT make assumptions about acceptable alternatives
+
+3. **Infrastructure Configuration**
+   - When encountering environment-specific configuration issues
+   - Example: Docker host networking, service discovery, DNS resolution
+   - **STOP** and ask user about their specific infrastructure setup
+   - Do NOT assume standard configurations apply
+
+4. **Large Dependency Changes**
+   - When solutions require significant dependency additions (>500MB, new runtimes, etc.)
+   - Example: Adding PyTorch for local embeddings (~2GB)
+   - **STOP** and ask user about resource constraints and preferences
+   - Do NOT make trade-offs without user input
+
+**Pattern Recognition:**
+- Connection timeouts → ASK about user's service setup
+- Missing services → ASK about user's infrastructure  
+- Deprecated features → ASK about user's compatibility needs
+- Large downloads → ASK about user's resource constraints
+
+**Example Proper Response:**
+"I discovered the embedding API is trying to connect to 172.17.0.1:4000 but getting connection refused. This suggests you have a LiteLLM or similar service running somewhere else. Where is your embedding service located? (localhost, litellm.lan, or other host?)"
+
+**Why This Matters:**
+- Prevents wasted time on wrong assumptions
+- Avoids creating unnecessary services/complexity  
+- Respects user's existing infrastructure
+- Enables targeted solutions based on actual setup
+
 **Traefik Integration Workflow:**
 - Use existing Traefik instance instead of adding new containers
 - Check running containers: `docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Ports}}" | grep -i traefik`
@@ -202,3 +301,27 @@ All Dockerfiles must demonstrate expert-level containerization practices:
   ```
 - Use `traefik.docker.network` label instead of adding external networks to avoid coupling
 - Keep services in their own project network for isolation
+
+## Second Instance Protocol
+
+**Claude Code Second Instance Permissions:**
+As a second instance of Claude Code assistant, the following protocol applies:
+
+**ALLOWED Operations:**
+- Add GitHub issues for tracking problems and solutions
+- Research solutions and analyze code architecture
+- Audit code for issues, improvements, or security concerns
+- Read files and analyze codebase structure
+- Provide recommendations and implementation suggestions
+- Create documentation and analysis reports
+
+**NOT ALLOWED Operations (unless EXPLICITLY granted permission):**
+- Change existing files or write new code
+- Perform destructive operations (delete files, containers, etc.)
+- Modify configuration files or environment settings
+- Execute commands that alter system state
+- Make commits or deploy changes
+- Install or uninstall dependencies
+
+**Permission Request Process:**
+If destructive or file-modifying operations are needed, explicitly request permission from the user before proceeding.

@@ -23,9 +23,10 @@ A memory-enhanced MCP (Model Context Protocol) server with local RAG (Retrieval-
 - **Event Streaming**: Live updates for memory expiration and document changes
 
 ### 🐳 Docker Ready
-- **Containerized Deployment**: Ready-to-use Docker containers
-- **Docker Compose**: Multi-service orchestration with Redis and database
-- **Environment Configuration**: Flexible configuration through environment variables
+- **Organized Docker Structure**: Clean separation of base, overrides, and variants
+- **Multi-Environment Support**: Laptop (Traefik HTTP) and Desktop (Traefik WEB) configurations
+- **Development & Production**: Dedicated variants with appropriate optimizations
+- **Flexible Deployment**: Composable configuration files for different scenarios
 
 ## Quick Start
 

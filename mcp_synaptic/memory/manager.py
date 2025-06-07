@@ -7,7 +7,7 @@ from ..config.logging import LoggerMixin
 from ..config.settings import Settings
 from ..core.exceptions import MemoryError, MemoryExpiredError, MemoryNotFoundError
 from .storage import MemoryStorage, RedisMemoryStorage, SQLiteMemoryStorage
-from .types import ExpirationPolicy, Memory, MemoryQuery, MemoryStats, MemoryType
+from ..models.memory import ExpirationPolicy, Memory, MemoryQuery, MemoryStats, MemoryType
 
 
 class MemoryManager(LoggerMixin):

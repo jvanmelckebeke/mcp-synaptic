@@ -1,0 +1,9 @@
+services:
+  mcp-synaptic:
+    ports: !reset []  # Remove port exposure - using Traefik
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.synaptic.rule=Host(`synaptic.localhost`)"
+      - "traefik.http.routers.synaptic.entrypoints=http"
+      - "traefik.http.services.synaptic.loadbalancer.server.port=8000"
+      - "traefik.docker.network=docker_synaptic-network"

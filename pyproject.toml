@@ -22,6 +22,11 @@ classifiers = [
 dependencies = [
     # MCP Protocol with FastMCP support
     "mcp[cli]>=1.6.0",
+    "fastmcp>=2.3.2",
+    
+    # Web framework and server (minimal for FastMCP)
+    "starlette>=0.27.0", 
+    "uvicorn[standard]>=0.24.0",
     
     # Vector database and embeddings
     "chromadb>=0.4.0",

@@ -12,9 +12,9 @@ async def main() -> None:
         # Load settings
         settings = Settings()
         
-        # Create and start server
+        # Create and run server
         server = SynapticServer(settings)
-        await server.start()
+        await server.run()
         
     except KeyboardInterrupt:
         print("\nServer stopped by user")

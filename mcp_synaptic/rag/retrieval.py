@@ -4,7 +4,8 @@ from typing import Any, Dict, List, Optional
 
 from ..config.logging import LoggerMixin
 from ..core.exceptions import RAGError
-from .database import Document, RAGDatabase, SearchResult
+from .database import RAGDatabase
+from ..models.rag import Document, DocumentSearchResult
 
 
 class DocumentRetriever(LoggerMixin):
@@ -19,7 +20,7 @@ class DocumentRetriever(LoggerMixin):
         limit: int = 10,
         similarity_threshold: Optional[float] = None,
         filters: Optional[Dict[str, Any]] = None,
-    ) -> List[SearchResult]:
+    ) -> List[DocumentSearchResult]:
         """Search for documents similar to the query."""
         try:
             results = await self.rag_database.search(
@@ -101,7 +102,7 @@ class DocumentRetriever(LoggerMixin):
         document_id: str,
         limit: int = 5,
         similarity_threshold: float = 0.8,
-    ) -> List[SearchResult]:
+    ) -> List[DocumentSearchResult]:
         """Find documents similar to a given document."""
         try:
             # Get the reference document
