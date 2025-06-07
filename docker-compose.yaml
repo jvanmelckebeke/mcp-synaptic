@@ -1,42 +1,43 @@
-version: '3.8'
-
 services:
   mcp-synaptic:
     build: .
     container_name: mcp-synaptic
-    ports:
-      - "8000:8000"
     env_file:
       - ./envs/synaptic.env
     volumes:
-      - ./data:/app/data
-      - ./logs:/app/logs
+      - ./data/synaptic:/app/data
+      - ./logs/synaptic:/app/logs
     depends_on:
       redis:
         condition: service_healthy
     networks:
       - synaptic-network
+      - housekeeping
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/health" ]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.synaptic.rule=Host(`synaptic.localhost`)"
+      - "traefik.http.routers.synaptic.entrypoints=web"
+      - "traefik.http.services.synaptic.loadbalancer.server.port=8000"
 
   redis:
     image: redis:7-alpine
     container_name: mcp-synaptic-redis
     command: redis-server --appendonly yes --appendfsync everysec
-    ports:
-      - "6379:6379"
     volumes:
-      - redis-data:/data
+      - ./data/redis:/data
     networks:
       - synaptic-network
+      - housekeeping
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -47,20 +48,23 @@ services:
     container_name: mcp-synaptic-redis-ui
     env_file:
       - ./envs/redis.env
-    ports:
-      - "8081:8081"
     depends_on:
       - redis
     networks:
       - synaptic-network
+      - housekeeping
     restart: unless-stopped
     profiles:
       - dev
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.redis-commander.rule=Host(`redis.synaptic.localhost`)"
+      - "traefik.http.routers.redis-commander.entrypoints=web"
+      - "traefik.http.services.redis-commander.loadbalancer.server.port=8081"
 
-volumes:
-  redis-data:
-    driver: local
 
 networks:
   synaptic-network:
     driver: bridge
+  housekeeping:
+    external: true

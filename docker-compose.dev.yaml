@@ -6,8 +6,6 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: mcp-synaptic-dev
-    ports:
-      - "8000:8000"
     env_file:
       - ./envs/synaptic.dev.env
     volumes:
@@ -19,19 +17,24 @@ services:
         condition: service_healthy
     networks:
       - synaptic-network
+      - housekeeping
     restart: unless-stopped
     command: ["uv", "run", "mcp-synaptic", "server", "--host", "0.0.0.0", "--port", "8000", "--debug"]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.synaptic-dev.rule=Host(`synaptic.localhost`)"
+      - "traefik.http.routers.synaptic-dev.entrypoints=web"
+      - "traefik.http.services.synaptic-dev.loadbalancer.server.port=8000"
 
   redis:
     image: redis:7-alpine
     container_name: mcp-synaptic-redis-dev
     command: redis-server --appendonly yes --appendfsync everysec
-    ports:
-      - "6379:6379"
     volumes:
       - redis-data-dev:/data
     networks:
       - synaptic-network
+      - housekeeping
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
@@ -44,13 +47,17 @@ services:
     container_name: mcp-synaptic-redis-ui-dev
     env_file:
       - ./envs/redis.env
-    ports:
-      - "8081:8081"
     depends_on:
       - redis
     networks:
       - synaptic-network
+      - housekeeping
     restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.redis-commander-dev.rule=Host(`redis.synaptic.localhost`)"
+      - "traefik.http.routers.redis-commander-dev.entrypoints=web"
+      - "traefik.http.services.redis-commander-dev.loadbalancer.server.port=8081"
 
 volumes:
   redis-data-dev:
@@ -59,3 +66,5 @@ volumes:
 networks:
   synaptic-network:
     driver: bridge
+  housekeeping:
+    external: true

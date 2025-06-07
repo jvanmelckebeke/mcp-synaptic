@@ -4,8 +4,6 @@ services:
   mcp-synaptic:
     image: mcp-synaptic:latest
     container_name: mcp-synaptic-prod
-    ports:
-      - "8000:8000"
     env_file:
       - ./envs/synaptic.prod.env
     volumes:
@@ -16,6 +14,7 @@ services:
         condition: service_healthy
     networks:
       - synaptic-network
+      - housekeeping
     restart: always
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
@@ -23,6 +22,11 @@ services:
       timeout: 10s
       retries: 3
       start_period: 60s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.synaptic-prod.rule=Host(`synaptic.localhost`)"
+      - "traefik.http.routers.synaptic-prod.entrypoints=web"
+      - "traefik.http.services.synaptic-prod.loadbalancer.server.port=8000"
     deploy:
       resources:
         limits:
@@ -36,12 +40,11 @@ services:
     image: redis:7-alpine
     container_name: mcp-synaptic-redis-prod
     command: redis-server --appendonly yes --appendfsync everysec --maxmemory 512mb --maxmemory-policy allkeys-lru
-    ports:
-      - "127.0.0.1:6379:6379"  # Only bind to localhost in production
     volumes:
       - redis-data-prod:/data
     networks:
       - synaptic-network
+      - housekeeping
     restart: always
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
@@ -82,3 +85,5 @@ volumes:
 networks:
   synaptic-network:
     driver: bridge
+  housekeeping:
+    external: true
