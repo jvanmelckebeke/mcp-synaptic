@@ -61,7 +61,9 @@ jobs:
       security-events: write
     strategy:
       matrix:
-        variant: [lightweight, full]
+        variant: [lightweight]
+        # TODO: Re-enable full variant once disk space issue is resolved (see issue #32)
+        # variant: [lightweight, full]
       fail-fast: false
     steps:
       - name: Checkout
@@ -86,34 +88,23 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Prepare build context
-        run: |
-          # Create variant-specific Dockerfile if needed
-          if [ "${{ matrix.variant }}" = "full" ]; then
-            echo "Creating Dockerfile.full for local embeddings variant"
-            cp Dockerfile Dockerfile.full
-            # Add local embeddings dependencies to full variant
-            sed -i 's/uv sync --frozen --no-dev/uv sync --frozen --no-dev --extra local-embeddings/' Dockerfile.full
-          fi
+      # Skip build context preparation for lightweight only
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./Dockerfile${{ matrix.variant == 'full' && '.full' || '' }}
+          file: ./Dockerfile
           platforms: linux/amd64,linux/arm64
           push: ${{ github.event_name != 'pull_request' }}
-          tags: |
-            ${{ needs.metadata.outputs.tags }}${{ matrix.variant == 'full' && '-full' || '' }}
+          tags: ${{ needs.metadata.outputs.tags }}
           labels: ${{ needs.metadata.outputs.labels }}
           cache-from: |
-            type=gha,scope=${{ github.ref_name }}-${{ matrix.variant }}
-            type=gha,scope=main-${{ matrix.variant }}
-          cache-to: type=gha,mode=max,scope=${{ github.ref_name }}-${{ matrix.variant }}
+            type=gha,scope=${{ github.ref_name }}-lightweight
+            type=gha,scope=main-lightweight
+          cache-to: type=gha,mode=max,scope=${{ github.ref_name }}-lightweight
           build-args: |
             BUILDKIT_INLINE_CACHE=1
-            VARIANT=${{ matrix.variant }}
-          outputs: type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=${{ github.event_name != 'pull_request' }}
 
   test:
     runs-on: ubuntu-latest
@@ -121,7 +112,7 @@ jobs:
     if: github.event_name == 'pull_request'
     strategy:
       matrix:
-        variant: [lightweight, full]
+        variant: [lightweight]
     steps:
       - name: Test container functionality
         run: |
@@ -137,7 +128,7 @@ jobs:
             --health-interval=10s \
             --health-timeout=5s \
             --health-retries=3 \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.head_ref }}-${{ matrix.variant }} \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.head_ref }} \
             timeout 30s python -c "
               import mcp_synaptic
               from mcp_synaptic.config.settings import Settings
