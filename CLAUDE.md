@@ -171,6 +171,21 @@ cd docker && docker-compose -f docker-compose.yaml -f overrides/laptop.yaml -f v
 
 ## Development Workflow
 
+**Semantic Versioning Responsibility:**
+- **CRITICAL**: Claude Code MUST maintain semantic versioning tags for all releases
+- User will NOT diligently manage version tags - this is Claude's responsibility
+- **REQUIRED WORKFLOW**: For every significant change commit to main branch:
+  1. Assess impact: patch (bug fix), minor (new feature), major (breaking change)
+  2. Create appropriate git tag: `git tag v1.2.3` (follow semver.org strictly)
+  3. Push tag: `git push --tags`
+  4. Verify GHCR publishes both `:latest` and `:v1.2.3` images
+- **Examples**:
+  - Bug fixes, small improvements: v1.0.1, v1.0.2, etc.
+  - New features, tool additions: v1.1.0, v1.2.0, etc.  
+  - Breaking API changes, major refactors: v2.0.0, v3.0.0, etc.
+- **Version Tag Format**: Always `v` prefix followed by semantic version (v1.2.3)
+- **When in doubt**: Err on the side of incrementing minor version for features, patch for fixes
+
 **Backward Compatibility Policy:**
 - **DO NOT** consider backward compatibility when making architectural changes
 - This is a new project with rapidly evolving architecture
