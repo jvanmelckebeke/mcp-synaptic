@@ -1,0 +1,97 @@
+version: '3.8'
+
+services:
+  mcp-synaptic:
+    image: mcp-synaptic:latest
+    container_name: mcp-synaptic-prod
+    ports:
+      - "8000:8000"
+    environment:
+      - SERVER_HOST=0.0.0.0
+      - SERVER_PORT=8000
+      - DEBUG=false
+      - LOG_LEVEL=INFO
+      - SQLITE_DATABASE_PATH=/app/data/synaptic.db
+      - CHROMADB_PERSIST_DIRECTORY=/app/data/chroma
+      - REDIS_URL=redis://redis:6379/0
+      - REDIS_ENABLED=true
+      - DEFAULT_MEMORY_TTL_SECONDS=7200  # 2 hours
+      - MAX_MEMORY_ENTRIES=50000
+      - MEMORY_CLEANUP_INTERVAL_SECONDS=600  # 10 minutes
+      - EMBEDDING_MODEL=all-MiniLM-L6-v2
+      - MAX_RAG_RESULTS=20
+      - RAG_SIMILARITY_THRESHOLD=0.75
+    volumes:
+      - ./data:/app/data:rw
+      - ./logs:/app/logs:rw
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - synaptic-network
+    restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  redis:
+    image: redis:7-alpine
+    container_name: mcp-synaptic-redis-prod
+    command: redis-server --appendonly yes --appendfsync everysec --maxmemory 512mb --maxmemory-policy allkeys-lru
+    ports:
+      - "127.0.0.1:6379:6379"  # Only bind to localhost in production
+    volumes:
+      - redis-data-prod:/data
+    networks:
+      - synaptic-network
+    restart: always
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+
+  # Production monitoring with Nginx reverse proxy (optional)
+  nginx:
+    image: nginx:alpine
+    container_name: mcp-synaptic-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/ssl/certs:ro
+    depends_on:
+      - mcp-synaptic
+    networks:
+      - synaptic-network
+    restart: always
+    profiles:
+      - nginx
+
+volumes:
+  redis-data-prod:
+    driver: local
+
+networks:
+  synaptic-network:
+    driver: bridge

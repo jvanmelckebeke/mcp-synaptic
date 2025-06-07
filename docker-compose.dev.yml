@@ -1,0 +1,74 @@
+version: '3.8'
+
+services:
+  mcp-synaptic:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: mcp-synaptic-dev
+    ports:
+      - "8000:8000"
+    environment:
+      - SERVER_HOST=0.0.0.0
+      - SERVER_PORT=8000
+      - DEBUG=true
+      - LOG_LEVEL=DEBUG
+      - SQLITE_DATABASE_PATH=/app/data/synaptic.db
+      - CHROMADB_PERSIST_DIRECTORY=/app/data/chroma
+      - REDIS_URL=redis://redis:6379/0
+      - REDIS_ENABLED=true
+      - DEFAULT_MEMORY_TTL_SECONDS=300  # Shorter TTL for development
+      - MAX_MEMORY_ENTRIES=1000
+      - MEMORY_CLEANUP_INTERVAL_SECONDS=60
+      - EMBEDDING_MODEL=all-MiniLM-L6-v2
+      - MAX_RAG_RESULTS=5
+      - RAG_SIMILARITY_THRESHOLD=0.6
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./mcp_synaptic:/app/mcp_synaptic:ro  # Mount source for development
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - synaptic-network
+    restart: unless-stopped
+    command: ["uv", "run", "mcp-synaptic", "server", "--host", "0.0.0.0", "--port", "8000", "--debug"]
+
+  redis:
+    image: redis:7-alpine
+    container_name: mcp-synaptic-redis-dev
+    command: redis-server --appendonly yes --appendfsync everysec
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data-dev:/data
+    networks:
+      - synaptic-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: mcp-synaptic-redis-ui-dev
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    ports:
+      - "8081:8081"
+    depends_on:
+      - redis
+    networks:
+      - synaptic-network
+    restart: unless-stopped
+
+volumes:
+  redis-data-dev:
+    driver: local
+
+networks:
+  synaptic-network:
+    driver: bridge
