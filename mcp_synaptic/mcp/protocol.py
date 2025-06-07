@@ -266,7 +266,7 @@ class MCPProtocolHandler(LoggerMixin):
             return {"deleted": deleted}
         
         elif name == "memory_search":
-            from ..memory.types import MemoryQuery
+            from ..models.memory import MemoryQuery
             query = MemoryQuery(**arguments)
             memories = await self.memory_manager.list(query)
             return [m.to_dict() for m in memories]

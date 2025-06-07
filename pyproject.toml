@@ -20,13 +20,8 @@ classifiers = [
 ]
 
 dependencies = [
-    # MCP Protocol
-    "mcp>=1.0.0",
-    
-    # Web framework for SSE
-    "fastapi>=0.104.0",
-    "uvicorn[standard]>=0.24.0",
-    "sse-starlette>=1.6.0",
+    # MCP Protocol with FastMCP support
+    "mcp[cli]>=1.6.0",
     
     # Vector database and embeddings
     "chromadb>=0.4.0",
@@ -145,4 +140,9 @@ exclude_lines = [
     "if __name__ == .__main__.:",
     "class .*Protocol):",
     "@(abc.)?abstractmethod",
+]
+
+[dependency-groups]
+dev = [
+    "mypy>=1.16.0",
 ]

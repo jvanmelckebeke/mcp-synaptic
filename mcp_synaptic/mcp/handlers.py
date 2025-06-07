@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional
 from ..config.logging import LoggerMixin
 from ..core.exceptions import MCPError, MemoryError, RAGError
 from ..memory.manager import MemoryManager
-from ..memory.types import MemoryQuery, MemoryType
+from ..models.memory import MemoryQuery, MemoryType
 from ..rag.database import RAGDatabase
 from ..sse.events import MemoryEvent, RAGEvent
 from ..sse.server import SSEServer

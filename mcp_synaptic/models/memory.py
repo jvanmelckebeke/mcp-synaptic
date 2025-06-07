@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import Field, validator
 
-from .base import IdentifiedModel, PaginatedResponse, SearchQuery, StatsModel, SynapticBaseModel
+from .base import IdentifiedModel, PaginatedResponse, StatsModel, SynapticBaseModel
 
 
 class MemoryType(str, Enum):
@@ -95,8 +95,12 @@ class Memory(IdentifiedModel):
             self.expires_at = self.last_accessed_at + timedelta(seconds=self.ttl_seconds)
 
 
-class MemoryQuery(SearchQuery):
+class MemoryQuery(SynapticBaseModel):
     """Query parameters for memory search."""
+    
+    query: str = Field(default="", description="Search query (not used in memory search)")
+    limit: int = Field(default=10, ge=1, le=100, description="Maximum results to return")
+    offset: int = Field(default=0, ge=0, description="Number of results to skip")
     
     keys: Optional[List[str]] = Field(
         default=None,

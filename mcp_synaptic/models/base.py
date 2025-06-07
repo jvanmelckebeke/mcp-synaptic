@@ -29,6 +29,10 @@ class SynapticBaseModel(BaseModel):
             UUID: lambda v: str(v),
         }
     )
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert model to dictionary for backward compatibility."""
+        return self.model_dump(mode='json')
 
 
 class TimestampedModel(SynapticBaseModel):
