@@ -1,4 +1,4 @@
-"""RAG database implementation using ChromaDB."""
+"""RAG database implementation using ChromaDB with new models."""
 
 import asyncio
 from datetime import datetime
@@ -14,59 +14,8 @@ except ImportError:
 from ..config.logging import LoggerMixin
 from ..config.settings import Settings
 from ..core.exceptions import DatabaseError, DocumentNotFoundError, RAGError
+from ..models.rag import Document, DocumentSearchResult
 from .embeddings import EmbeddingManager
-
-
-class Document:
-    """Represents a document in the RAG database."""
-    
-    def __init__(
-        self,
-        id: Optional[str] = None,
-        content: str = "",
-        metadata: Optional[Dict[str, Any]] = None,
-        embedding: Optional[List[float]] = None,
-        created_at: Optional[datetime] = None,
-        updated_at: Optional[datetime] = None,
-    ):
-        self.id = id or str(uuid4())
-        self.content = content
-        self.metadata = metadata or {}
-        self.embedding = embedding
-        self.created_at = created_at or datetime.utcnow()
-        self.updated_at = updated_at or datetime.utcnow()
-
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert document to dictionary."""
-        return {
-            "id": self.id,
-            "content": self.content,
-            "metadata": self.metadata,
-            "created_at": self.created_at.isoformat(),
-            "updated_at": self.updated_at.isoformat(),
-        }
-
-
-class SearchResult:
-    """Represents a search result from the RAG database."""
-    
-    def __init__(
-        self,
-        document: Document,
-        score: float,
-        distance: Optional[float] = None,
-    ):
-        self.document = document
-        self.score = score
-        self.distance = distance
-
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert search result to dictionary."""
-        return {
-            "document": self.document.to_dict(),
-            "score": self.score,
-            "distance": self.distance,
-        }
 
 
 class RAGDatabase(LoggerMixin):
@@ -139,26 +88,32 @@ class RAGDatabase(LoggerMixin):
         self._ensure_initialized()
 
         try:
+            # Create new document with proper ID generation
             document = Document(
-                id=document_id,
+                id=document_id or str(uuid4()),
                 content=content,
-                metadata=metadata or {}
+                metadata=metadata or {},
+                embedding_model=self.embedding_manager.model_name if self.embedding_manager else None,
+                embedding_dimension=self.embedding_manager.dimension if self.embedding_manager else None,
             )
 
             # Generate embedding
+            embedding = None
             if self.embedding_manager:
-                document.embedding = await self.embedding_manager.embed_text(content)
+                embedding = await self.embedding_manager.embed_text(content)
 
             # Add to ChromaDB
-            if document.embedding:
+            if embedding:
                 self.collection.add(
                     ids=[document.id],
                     documents=[document.content],
-                    embeddings=[document.embedding],
+                    embeddings=[embedding],
                     metadatas=[{
                         **document.metadata,
                         "created_at": document.created_at.isoformat(),
                         "updated_at": document.updated_at.isoformat(),
+                        "embedding_model": document.embedding_model,
+                        "embedding_dimension": document.embedding_dimension,
                     }]
                 )
 
@@ -185,19 +140,27 @@ class RAGDatabase(LoggerMixin):
             # Reconstruct document
             content = result["documents"][0]
             metadata = result["metadatas"][0] or {}
-            embedding = result["embeddings"][0] if result["embeddings"] else None
-
-            # Extract timestamps from metadata
-            created_at = datetime.fromisoformat(metadata.pop("created_at", datetime.utcnow().isoformat()))
-            updated_at = datetime.fromisoformat(metadata.pop("updated_at", datetime.utcnow().isoformat()))
+            
+            # Extract system metadata
+            created_at_str = metadata.pop("created_at", datetime.utcnow().isoformat())
+            updated_at_str = metadata.pop("updated_at", None)
+            embedding_model = metadata.pop("embedding_model", None)
+            embedding_dimension = metadata.pop("embedding_dimension", None)
+            
+            # Parse timestamps
+            created_at = datetime.fromisoformat(created_at_str.replace('Z', '+00:00'))
+            updated_at = None
+            if updated_at_str:
+                updated_at = datetime.fromisoformat(updated_at_str.replace('Z', '+00:00'))
 
             document = Document(
                 id=document_id,
                 content=content,
                 metadata=metadata,
-                embedding=embedding,
                 created_at=created_at,
                 updated_at=updated_at,
+                embedding_model=embedding_model,
+                embedding_dimension=embedding_dimension,
             )
 
             self.logger.debug("Document retrieved", document_id=document_id)
@@ -207,13 +170,92 @@ class RAGDatabase(LoggerMixin):
             self.logger.error("Failed to get document", document_id=document_id, error=str(e))
             raise RAGError(f"Failed to get document: {e}")
 
+    async def update_document(
+        self,
+        document_id: str,
+        content: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> Optional[Document]:
+        """Update an existing document."""
+        self._ensure_initialized()
+
+        try:
+            # Get existing document
+            existing = await self.get_document(document_id)
+            if not existing:
+                return None
+
+            # Update fields
+            new_content = content if content is not None else existing.content
+            new_metadata = metadata if metadata is not None else existing.metadata
+            
+            # Create updated document
+            updated_doc = Document(
+                id=document_id,
+                content=new_content,
+                metadata=new_metadata,
+                created_at=existing.created_at,
+                updated_at=datetime.utcnow(),
+                embedding_model=self.embedding_manager.model_name if self.embedding_manager else existing.embedding_model,
+                embedding_dimension=self.embedding_manager.dimension if self.embedding_manager else existing.embedding_dimension,
+            )
+
+            # Generate new embedding if content changed
+            embedding = None
+            if content is not None and self.embedding_manager:
+                embedding = await self.embedding_manager.embed_text(new_content)
+
+            # Update in ChromaDB
+            self.collection.delete(ids=[document_id])
+            
+            if embedding:
+                self.collection.add(
+                    ids=[updated_doc.id],
+                    documents=[updated_doc.content],
+                    embeddings=[embedding],
+                    metadatas=[{
+                        **updated_doc.metadata,
+                        "created_at": updated_doc.created_at.isoformat(),
+                        "updated_at": updated_doc.updated_at.isoformat(),
+                        "embedding_model": updated_doc.embedding_model,
+                        "embedding_dimension": updated_doc.embedding_dimension,
+                    }]
+                )
+
+            self.logger.info("Document updated", document_id=document_id)
+            return updated_doc
+
+        except Exception as e:
+            self.logger.error("Failed to update document", document_id=document_id, error=str(e))
+            raise RAGError(f"Failed to update document: {e}")
+
+    async def delete_document(self, document_id: str) -> bool:
+        """Delete a document by ID."""
+        self._ensure_initialized()
+
+        try:
+            # Check if document exists
+            existing = await self.get_document(document_id)
+            if not existing:
+                return False
+
+            # Delete from ChromaDB
+            self.collection.delete(ids=[document_id])
+            
+            self.logger.info("Document deleted", document_id=document_id)
+            return True
+
+        except Exception as e:
+            self.logger.error("Failed to delete document", document_id=document_id, error=str(e))
+            raise RAGError(f"Failed to delete document: {e}")
+
     async def search(
         self,
         query: str,
         limit: int = 10,
         similarity_threshold: Optional[float] = None,
         metadata_filter: Optional[Dict[str, Any]] = None,
-    ) -> List[SearchResult]:
+    ) -> List[DocumentSearchResult]:
         """Search for similar documents."""
         self._ensure_initialized()
 
@@ -236,141 +278,120 @@ class RAGDatabase(LoggerMixin):
                 where=metadata_filter
             )
 
-            # Convert to SearchResult objects
+            # Convert to DocumentSearchResult objects
             search_results = []
-            
-            if results["ids"] and results["ids"][0]:
-                for i, doc_id in enumerate(results["ids"][0]):
-                    distance = results["distances"][0][i] if results["distances"] else None
-                    
-                    # Convert distance to similarity score (1 - normalized_distance)
-                    score = 1.0 - (distance or 0.0)
-                    
-                    # Filter by similarity threshold
-                    if score < threshold:
-                        continue
+            for i, doc_id in enumerate(results["ids"][0]):
+                content = results["documents"][0][i]
+                metadata = results["metadatas"][0][i] or {}
+                distance = results["distances"][0][i]
+                
+                # Calculate similarity score from distance
+                similarity_score = max(0.0, 1.0 - distance)
+                
+                # Skip results below threshold
+                if threshold and similarity_score < threshold:
+                    continue
+                
+                # Extract system metadata
+                created_at_str = metadata.pop("created_at", datetime.utcnow().isoformat())
+                updated_at_str = metadata.pop("updated_at", None)
+                embedding_model = metadata.pop("embedding_model", None)
+                embedding_dimension = metadata.pop("embedding_dimension", None)
+                
+                # Parse timestamps
+                created_at = datetime.fromisoformat(created_at_str.replace('Z', '+00:00'))
+                updated_at = None
+                if updated_at_str:
+                    updated_at = datetime.fromisoformat(updated_at_str.replace('Z', '+00:00'))
 
-                    content = results["documents"][0][i]
-                    metadata = results["metadatas"][0][i] or {}
-                    
-                    # Extract timestamps
-                    created_at = datetime.fromisoformat(metadata.pop("created_at", datetime.utcnow().isoformat()))
-                    updated_at = datetime.fromisoformat(metadata.pop("updated_at", datetime.utcnow().isoformat()))
+                # Create document
+                document = Document(
+                    id=doc_id,
+                    content=content,
+                    metadata=metadata,
+                    created_at=created_at,
+                    updated_at=updated_at,
+                    embedding_model=embedding_model,
+                    embedding_dimension=embedding_dimension,
+                )
 
-                    document = Document(
-                        id=doc_id,
-                        content=content,
-                        metadata=metadata,
-                        created_at=created_at,
-                        updated_at=updated_at,
-                    )
+                # Create search result
+                search_result = DocumentSearchResult(
+                    item=document,
+                    score=similarity_score,
+                    rank=len(search_results) + 1,
+                    distance=distance,
+                    embedding_model=embedding_model,
+                    match_type="vector"
+                )
+                
+                search_results.append(search_result)
 
-                    search_results.append(SearchResult(
-                        document=document,
-                        score=score,
-                        distance=distance
-                    ))
-
-            self.logger.info(
-                "Document search completed",
-                query_length=len(query),
-                results_count=len(search_results),
-                threshold=threshold
-            )
-
+            self.logger.info("Document search completed", query=query, results=len(search_results))
             return search_results
 
         except Exception as e:
-            self.logger.error("Failed to search documents", error=str(e))
+            self.logger.error("Failed to search documents", query=query, error=str(e))
             raise RAGError(f"Failed to search documents: {e}")
-
-    async def update_document(
-        self,
-        document_id: str,
-        content: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
-    ) -> Optional[Document]:
-        """Update an existing document."""
-        self._ensure_initialized()
-
-        try:
-            # Get existing document
-            existing_doc = await self.get_document(document_id)
-            if not existing_doc:
-                raise DocumentNotFoundError(document_id)
-
-            # Update fields
-            updated_content = content or existing_doc.content
-            updated_metadata = {**existing_doc.metadata, **(metadata or {})}
-            updated_at = datetime.utcnow()
-
-            # Generate new embedding if content changed
-            embedding = existing_doc.embedding
-            if content and content != existing_doc.content and self.embedding_manager:
-                embedding = await self.embedding_manager.embed_text(updated_content)
-
-            # Create updated document
-            updated_doc = Document(
-                id=document_id,
-                content=updated_content,
-                metadata=updated_metadata,
-                embedding=embedding,
-                created_at=existing_doc.created_at,
-                updated_at=updated_at,
-            )
-
-            # Update in ChromaDB
-            self.collection.update(
-                ids=[document_id],
-                documents=[updated_content],
-                embeddings=[embedding] if embedding else None,
-                metadatas=[{
-                    **updated_metadata,
-                    "created_at": existing_doc.created_at.isoformat(),
-                    "updated_at": updated_at.isoformat(),
-                }]
-            )
-
-            self.logger.info("Document updated", document_id=document_id)
-            return updated_doc
-
-        except DocumentNotFoundError:
-            raise
-        except Exception as e:
-            self.logger.error("Failed to update document", document_id=document_id, error=str(e))
-            raise RAGError(f"Failed to update document: {e}")
-
-    async def delete_document(self, document_id: str) -> bool:
-        """Delete a document from the database."""
-        self._ensure_initialized()
-
-        try:
-            # Check if document exists
-            existing_doc = await self.get_document(document_id)
-            if not existing_doc:
-                return False
-
-            # Delete from ChromaDB
-            self.collection.delete(ids=[document_id])
-
-            self.logger.info("Document deleted", document_id=document_id)
-            return True
-
-        except Exception as e:
-            self.logger.error("Failed to delete document", document_id=document_id, error=str(e))
-            raise RAGError(f"Failed to delete document: {e}")
 
     async def get_collection_stats(self) -> Dict[str, Any]:
         """Get statistics about the document collection."""
         self._ensure_initialized()
 
         try:
+            # Get basic collection stats
             count = self.collection.count()
             
+            if count == 0:
+                return {
+                    "total_documents": 0,
+                    "total_embeddings": 0,
+                    "embedding_dimension": None,
+                    "embedding_models": [],
+                    "total_content_length": 0,
+                    "average_content_length": 0,
+                    "total_word_count": 0,
+                    "collection_size_bytes": 0,
+                    "metadata_keys": [],
+                }
+
+            # Get all documents for detailed stats
+            all_docs = self.collection.get(
+                include=["documents", "metadatas"],
+                limit=count
+            )
+
+            # Calculate statistics
+            total_content_length = sum(len(doc) for doc in all_docs["documents"])
+            total_word_count = sum(len(doc.split()) for doc in all_docs["documents"])
+            
+            # Collect metadata keys and embedding models
+            metadata_keys = set()
+            embedding_models = set()
+            
+            for metadata in all_docs["metadatas"]:
+                if metadata:
+                    metadata_keys.update(metadata.keys())
+                    if "embedding_model" in metadata and metadata["embedding_model"]:
+                        embedding_models.add(metadata["embedding_model"])
+
+            # Get embedding dimension from first document with dimension info
+            embedding_dimension = None
+            for metadata in all_docs["metadatas"]:
+                if metadata and "embedding_dimension" in metadata:
+                    embedding_dimension = metadata["embedding_dimension"]
+                    break
+
             return {
                 "total_documents": count,
-                "collection_name": self.collection.name,
-                "persist_directory": str(self.settings.CHROMADB_PERSIST_DIRECTORY),
+                "total_embeddings": count,  # Assuming all docs have embeddings
+                "embedding_dimension": embedding_dimension,
+                "embedding_models": list(embedding_models),
+                "total_content_length": total_content_length,
+                "average_content_length": total_content_length / count if count > 0 else 0,
+                "total_word_count": total_word_count,
+                "collection_size_bytes": None,  # ChromaDB doesn't provide this easily
+                "metadata_keys": list(metadata_keys),
             }
 
         except Exception as e:
