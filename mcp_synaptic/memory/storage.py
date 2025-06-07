@@ -143,7 +143,7 @@ class SQLiteMemoryStorage(MemoryStorage):
                 memory.expiration_policy.value,
                 memory.created_at.isoformat(),
                 memory.updated_at.isoformat(),
-                memory.accessed_at.isoformat(),
+                memory.last_accessed_at.isoformat(),
                 memory.expires_at.isoformat() if memory.expires_at else None,
                 memory.ttl_seconds,
                 memory.access_count,
@@ -282,15 +282,17 @@ class SQLiteMemoryStorage(MemoryStorage):
 
     def _row_to_memory(self, row) -> Memory:
         """Convert database row to Memory object."""
+        from ..models.memory import MemoryType, ExpirationPolicy
+        
         return Memory(
             id=row[0],
             key=row[1],
             data=json.loads(row[2]),
-            memory_type=row[3],
-            expiration_policy=row[4],
+            memory_type=MemoryType(row[3]),
+            expiration_policy=ExpirationPolicy(row[4]),
             created_at=datetime.fromisoformat(row[5]),
             updated_at=datetime.fromisoformat(row[6]),
-            accessed_at=datetime.fromisoformat(row[7]),
+            last_accessed_at=datetime.fromisoformat(row[7]),
             expires_at=datetime.fromisoformat(row[8]) if row[8] else None,
             ttl_seconds=row[9],
             access_count=row[10],
