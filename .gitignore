@@ -111,6 +111,10 @@ ENV/
 env.bak/
 venv.bak/
 
+# Environment files with secrets
+envs/*.env
+!envs/*.env.example
+
 # Spyder project settings
 .spyderproject
 .spyproject

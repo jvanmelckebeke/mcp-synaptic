@@ -130,6 +130,18 @@ EMBEDDING_MODEL=all-MiniLM-L6-v2
 - Non-root user for security
 - Health check endpoint at `/health`
 
+**Expert-Level Dockerfile Requirements:**
+All Dockerfiles must demonstrate expert-level containerization practices:
+- Multi-stage builds with proper dependency separation
+- Mount caches for build performance optimization (`--mount=type=cache`)
+- Official uv image usage (`ghcr.io/astral-sh/uv`) with proper version pinning
+- Deterministic builds with UV environment variables (UV_COMPILE_BYTECODE, UV_NO_INSTALLER_METADATA)
+- Optimized layer ordering and caching strategies
+- Minimal runtime images with only necessary dependencies
+- Proper security practices (non-root users, minimal attack surface)
+- BuildKit features utilization for advanced patterns
+- Enterprise-grade configuration (health checks, proper signal handling)
+
 **Deployment Variants:**
 - `docker-compose.yml` - Basic setup
 - `docker-compose.dev.yml` - Development with Redis commander

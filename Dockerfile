@@ -22,6 +22,8 @@ RUN --mount=from=uv,source=/uv,target=/bin/uv \
     --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=uv.lock,target=uv.lock \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    --mount=type=bind,source=README.md,target=README.md \
+    --mount=type=bind,source=mcp_synaptic,target=mcp_synaptic \
     uv sync --frozen --no-dev
 
 FROM python:3.11-slim
@@ -49,8 +51,8 @@ COPY --from=builder /app/.venv /app/.venv
 COPY mcp_synaptic ./mcp_synaptic
 COPY main.py ./
 
-# Create data directories
-RUN mkdir -p data logs && \
+# Create data directories and fix permissions
+RUN mkdir -p data logs data/chroma && \
     chown -R app:app /app
 
 # Switch to non-root user
