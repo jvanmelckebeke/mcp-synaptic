@@ -74,9 +74,9 @@ logs/
 .pytest_cache/
 
 # Docker
-Dockerfile*
 docker-compose*.yml
 .dockerignore
+# Keep Dockerfile and Dockerfile.full for multi-variant builds
 
 # Documentation
 docs/
@@ -86,8 +86,7 @@ docs/
 # Tests
 tests/
 
-# CI/CD
-.github/
+# CI/CD (exclude github workflows from image but keep for build context)
 .gitlab-ci.yml
 .travis.yml
 .circleci/

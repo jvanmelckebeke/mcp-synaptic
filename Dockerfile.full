@@ -1,0 +1,93 @@
+"""Dockerfile variant with local embeddings support (heavy dependencies)."""
+
+# Multi-stage build with uv for dependency management
+FROM ghcr.io/astral-sh/uv:0.6.13 AS uv
+
+FROM python:3.11-slim AS builder
+
+# Install system dependencies for building Python packages with native extensions
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    libffi-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy uv from the base image
+COPY --from=uv /uv /bin/uv
+
+# Set UV environment variables for reproducible builds
+ENV UV_COMPILE_BYTECODE=1 \
+    UV_NO_INSTALLER_METADATA=1 \
+    UV_LINK_MODE=copy
+
+# Set working directory
+WORKDIR /app
+
+# Copy dependency files first for better layer caching
+COPY uv.lock pyproject.toml ./
+
+# Install dependencies including local embeddings (heavy PyTorch dependencies)
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev --extra local-embeddings
+
+# Copy application source code
+COPY . .
+
+# Install the application
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv pip install --no-deps -e .
+
+# Production runtime stage
+FROM python:3.11-slim AS runtime
+
+# Install runtime system dependencies
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && apt-get install -y \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user for security
+RUN groupadd -r synaptic && useradd -r -g synaptic -s /bin/bash synaptic
+
+# Set working directory
+WORKDIR /app
+
+# Copy the virtual environment from builder stage
+COPY --from=builder --chown=synaptic:synaptic /app/.venv /app/.venv
+
+# Copy application source code
+COPY --chown=synaptic:synaptic . .
+
+# Create data directories with proper ownership
+RUN mkdir -p /app/data/chroma /app/logs && \
+    chown -R synaptic:synaptic /app/data /app/logs
+
+# Add virtual environment to PATH
+ENV PATH="/app/.venv/bin:$PATH" \
+    PYTHONPATH="/app:$PYTHONPATH" \
+    PYTHONUNBUFFERED=1
+
+# Configure application defaults for container environment
+ENV SERVER_HOST=0.0.0.0 \
+    SERVER_PORT=8000 \
+    SQLITE_DATABASE_PATH=/app/data/synaptic.db \
+    CHROMADB_PERSIST_DIRECTORY=/app/data/chroma \
+    LOG_LEVEL=INFO \
+    EMBEDDING_PROVIDER=local \
+    EMBEDDING_MODEL=all-MiniLM-L6-v2
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD curl -f http://localhost:${SERVER_PORT}/health || exit 1
+
+# Switch to non-root user
+USER synaptic
+
+# Expose port
+EXPOSE 8000
+
+# Default command
+CMD ["python", "main.py"]
