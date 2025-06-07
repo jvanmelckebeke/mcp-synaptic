@@ -93,6 +93,24 @@ class Memory(IdentifiedModel):
             self.ttl_seconds is not None):
             from datetime import timedelta
             self.expires_at = self.last_accessed_at + timedelta(seconds=self.ttl_seconds)
+    
+    def update_expiration(self, ttl_seconds: int) -> None:
+        """Update expiration time based on TTL and policy."""
+        from datetime import timedelta
+        
+        if self.expiration_policy == ExpirationPolicy.NEVER:
+            self.expires_at = None
+        elif ttl_seconds <= 0:
+            # Permanent memory
+            self.expires_at = None
+        else:
+            # Calculate expiration based on policy
+            if self.expiration_policy == ExpirationPolicy.SLIDING:
+                # Sliding expiration from last access
+                self.expires_at = self.last_accessed_at + timedelta(seconds=ttl_seconds)
+            else:
+                # Absolute expiration from creation
+                self.expires_at = self.created_at + timedelta(seconds=ttl_seconds)
 
 
 class MemoryQuery(SynapticBaseModel):

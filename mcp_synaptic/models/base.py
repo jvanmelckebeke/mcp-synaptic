@@ -2,7 +2,7 @@
 
 from datetime import datetime
 from typing import Any, Dict, Generic, List, Optional, TypeVar
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -48,7 +48,7 @@ class TimestampedModel(SynapticBaseModel):
 class IdentifiedModel(TimestampedModel):
     """Base model for entities with ID and timestamps."""
     
-    id: str = Field(description="Unique identifier")
+    id: str = Field(default_factory=lambda: str(uuid4()), description="Unique identifier")
 
 
 class OperationResult(SynapticBaseModel, Generic[T]):

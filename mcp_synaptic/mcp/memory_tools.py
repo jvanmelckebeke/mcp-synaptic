@@ -115,12 +115,15 @@ class MemoryTools(LoggerMixin):
                 except ValueError as e:
                     raise ValueError(f"Invalid memory type: {e}")
 
+            # Use default limit if None provided
+            actual_limit = limit if limit is not None else 10
+
             # Create query
             query = MemoryQuery(
                 keys=keys,
                 memory_types=mem_types,
                 include_expired=include_expired,
-                limit=limit,
+                limit=actual_limit,
                 offset=offset,
             )
 
