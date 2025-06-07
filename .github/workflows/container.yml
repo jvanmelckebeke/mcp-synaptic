@@ -41,8 +41,8 @@ jobs:
             type=semver,pattern={{major}}
             # Latest tag for main branch
             type=raw,value=latest,enable={{is_default_branch}}
-            # SHA-based tags for traceability
-            type=sha,prefix={{branch}}-,format=short
+            # SHA-based tags for traceability (only for branches, not tags)
+            type=sha,prefix={{branch}}-,format=short,enable={{is_default_branch}}
           labels: |
             org.opencontainers.image.title=MCP Synaptic
             org.opencontainers.image.description=MCP server with RAG and memory capabilities
