@@ -8,21 +8,8 @@ services:
     container_name: mcp-synaptic-dev
     ports:
       - "8000:8000"
-    environment:
-      - SERVER_HOST=0.0.0.0
-      - SERVER_PORT=8000
-      - DEBUG=true
-      - LOG_LEVEL=DEBUG
-      - SQLITE_DATABASE_PATH=/app/data/synaptic.db
-      - CHROMADB_PERSIST_DIRECTORY=/app/data/chroma
-      - REDIS_URL=redis://redis:6379/0
-      - REDIS_ENABLED=true
-      - DEFAULT_MEMORY_TTL_SECONDS=300  # Shorter TTL for development
-      - MAX_MEMORY_ENTRIES=1000
-      - MEMORY_CLEANUP_INTERVAL_SECONDS=60
-      - EMBEDDING_MODEL=all-MiniLM-L6-v2
-      - MAX_RAG_RESULTS=5
-      - RAG_SIMILARITY_THRESHOLD=0.6
+    env_file:
+      - ./envs/synaptic.dev.env
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs
@@ -55,8 +42,8 @@ services:
   redis-commander:
     image: rediscommander/redis-commander:latest
     container_name: mcp-synaptic-redis-ui-dev
-    environment:
-      - REDIS_HOSTS=local:redis:6379
+    env_file:
+      - ./envs/redis.env
     ports:
       - "8081:8081"
     depends_on:

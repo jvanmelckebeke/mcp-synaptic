@@ -6,21 +6,8 @@ services:
     container_name: mcp-synaptic-prod
     ports:
       - "8000:8000"
-    environment:
-      - SERVER_HOST=0.0.0.0
-      - SERVER_PORT=8000
-      - DEBUG=false
-      - LOG_LEVEL=INFO
-      - SQLITE_DATABASE_PATH=/app/data/synaptic.db
-      - CHROMADB_PERSIST_DIRECTORY=/app/data/chroma
-      - REDIS_URL=redis://redis:6379/0
-      - REDIS_ENABLED=true
-      - DEFAULT_MEMORY_TTL_SECONDS=7200  # 2 hours
-      - MAX_MEMORY_ENTRIES=50000
-      - MEMORY_CLEANUP_INTERVAL_SECONDS=600  # 10 minutes
-      - EMBEDDING_MODEL=all-MiniLM-L6-v2
-      - MAX_RAG_RESULTS=20
-      - RAG_SIMILARITY_THRESHOLD=0.75
+    env_file:
+      - ./envs/synaptic.prod.env
     volumes:
       - ./data:/app/data:rw
       - ./logs:/app/logs:rw
