@@ -276,16 +276,24 @@ class TestDocumentSearchResponse:
     def test_document_search_response_creation(self):
         """Test creating DocumentSearchResponse."""
         document = Document(content="Test document")
-        result = DocumentSearchResult(
+        doc_result = DocumentSearchResult(
             item=document,
             score=0.85,
             rank=1,
             distance=0.15
         )
         
+        # DocumentSearchResponse expects SearchResult[DocumentSearchResult] based on inheritance
+        from mcp_synaptic.models.base import SearchResult
+        search_result = SearchResult(
+            item=doc_result,
+            score=0.85,
+            rank=1
+        )
+        
         response = DocumentSearchResponse(
-            results=[result],
             query="test query",
+            results=[search_result],
             total_count=1,
             search_time_ms=150,
             embedding_model="text-embedding-ada-002",
@@ -302,17 +310,17 @@ class TestDocumentSearchResponse:
     def test_document_search_response_inherits_search_response(self):
         """Test that DocumentSearchResponse inherits SearchResponse properties."""
         response = DocumentSearchResponse(
-            results=[],
             query="test",
-            total_results=0,
-            took_ms=100
+            results=[],
+            total_count=0,
+            search_time_ms=100
         )
         
         # Should have inherited fields
-        assert hasattr(response, 'results')
+        assert hasattr(response, 'items')  # results become items in PaginatedResponse
         assert hasattr(response, 'query')
-        assert hasattr(response, 'total_results')
-        assert hasattr(response, 'took_ms')
+        assert hasattr(response, 'total_count')
+        assert hasattr(response, 'search_time_ms')
 
 
 class TestCollectionStats:
@@ -642,31 +650,29 @@ class TestDocumentListResponse:
         
         response = DocumentListResponse(
             items=documents,
-            total=2,
-            page=1,
-            per_page=10,
-            has_next=False
+            total_count=2,
+            offset=0,
+            limit=10
         )
         
         assert len(response.items) == 2
-        assert response.total == 2
-        assert response.page == 1
-        assert response.per_page == 10
-        assert response.has_next is False
+        assert response.total_count == 2
+        assert response.offset == 0
+        assert response.limit == 10
+        assert response.has_more is False
 
     def test_document_list_response_inherits_paginated_response(self):
         """Test that DocumentListResponse inherits PaginatedResponse properties."""
         response = DocumentListResponse(
             items=[],
-            total=0,
-            page=1,
-            per_page=10,
-            has_next=False
+            total_count=0,
+            offset=0,
+            limit=10
         )
         
         # Should have inherited fields
         assert hasattr(response, 'items')
-        assert hasattr(response, 'total')
-        assert hasattr(response, 'page')
-        assert hasattr(response, 'per_page')
-        assert hasattr(response, 'has_next')
+        assert hasattr(response, 'total_count')
+        assert hasattr(response, 'offset')
+        assert hasattr(response, 'limit')
+        assert hasattr(response, 'has_more')
