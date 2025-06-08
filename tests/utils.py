@@ -174,6 +174,8 @@ class MockFactory:
     @staticmethod
     def create_aiohttp_session_mock(response_data: Any = None, status: int = 200) -> AsyncMock:
         """Create a mock aiohttp session."""
+        from unittest.mock import MagicMock
+        
         session_mock = AsyncMock()
         response_mock = AsyncMock()
         response_mock.status = status
@@ -181,8 +183,22 @@ class MockFactory:
         if response_data is not None:
             response_mock.json = AsyncMock(return_value=response_data)
         
-        session_mock.post.return_value.__aenter__.return_value = response_mock
-        session_mock.get.return_value.__aenter__.return_value = response_mock
+        # Create a proper async context manager mock
+        class MockAsyncContextManager:
+            def __init__(self, response):
+                self.response = response
+                
+            async def __aenter__(self):
+                return self.response
+                
+            async def __aexit__(self, exc_type, exc_val, exc_tb):
+                return None
+        
+        context_manager = MockAsyncContextManager(response_mock)
+        
+        session_mock.post = MagicMock(return_value=context_manager)
+        session_mock.get = MagicMock(return_value=context_manager)
+        session_mock.close = AsyncMock()  # Add close method for cleanup
         return session_mock
     
     @staticmethod
