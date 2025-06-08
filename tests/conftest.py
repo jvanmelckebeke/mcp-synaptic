@@ -14,7 +14,7 @@ from pydantic import BaseModel
 
 from mcp_synaptic.config.settings import Settings
 from mcp_synaptic.memory.manager import MemoryManager
-from mcp_synaptic.memory.storage import SQLiteMemoryStorage
+from mcp_synaptic.memory.storage.sqlite import SQLiteMemoryStorage
 from mcp_synaptic.models.memory import ExpirationPolicy, Memory, MemoryType
 
 

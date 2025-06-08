@@ -6,7 +6,9 @@ from typing import Dict, List, Optional
 from ..config.logging import LoggerMixin
 from ..config.settings import Settings
 from ..core.exceptions import MemoryError, MemoryExpiredError, MemoryNotFoundError
-from .storage import MemoryStorage, RedisMemoryStorage, SQLiteMemoryStorage
+from .storage.base import MemoryStorage
+from .storage.sqlite import SQLiteMemoryStorage
+from .storage.redis import RedisMemoryStorage
 from ..models.memory import ExpirationPolicy, Memory, MemoryQuery, MemoryStats, MemoryType
 
 
