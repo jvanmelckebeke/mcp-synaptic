@@ -23,7 +23,6 @@ class TestEmbeddingManager:
         test_settings.EMBEDDING_PROVIDER = "api"
         test_settings.EMBEDDING_API_BASE = "http://mock-api:4000"
         test_settings.EMBEDDING_MODEL = "text-embedding-ada-002"
-        test_settings.EMBEDDING_DIMENSIONS = 1536
         test_settings.EMBEDDING_API_KEY = "test-api-key"
         return test_settings
 
@@ -32,7 +31,6 @@ class TestEmbeddingManager:
         """Test settings configured for local provider."""
         test_settings.EMBEDDING_PROVIDER = "local"
         test_settings.EMBEDDING_MODEL = "all-MiniLM-L6-v2"
-        test_settings.EMBEDDING_DIMENSIONS = 384
         return test_settings
 
     @pytest_asyncio.fixture
