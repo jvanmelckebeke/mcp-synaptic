@@ -1,56 +1,21 @@
-"""Memory manager for handling memory operations with expiration."""
+"""Memory CRUD operations handler."""
 
-from datetime import datetime, timedelta, UTC
-from typing import Dict, List, Optional
+from datetime import datetime, UTC
+from typing import Dict, Optional
 
-from ..config.logging import LoggerMixin
-from ..config.settings import Settings
-from ..core.exceptions import MemoryError, MemoryExpiredError, MemoryNotFoundError
-from .storage import MemoryStorage, RedisMemoryStorage, SQLiteMemoryStorage
-from ..models.memory import ExpirationPolicy, Memory, MemoryQuery, MemoryStats, MemoryType
+from ...config.settings import Settings
+from ...core.exceptions import MemoryError, MemoryExpiredError, MemoryNotFoundError
+from ..storage import MemoryStorage
+from ...models.memory import ExpirationPolicy, Memory, MemoryType
 
 
-class MemoryManager(LoggerMixin):
-    """Manages memory storage with expiration and cleanup capabilities."""
+class MemoryOperations:
+    """Handles CRUD operations for memory management."""
 
-    def __init__(self, settings: Settings) -> None:
+    def __init__(self, storage: MemoryStorage, settings: Settings, logger):
+        self.storage = storage
         self.settings = settings
-        self.storage: Optional[MemoryStorage] = None
-        self._initialized = False
-
-    async def initialize(self) -> None:
-        """Initialize memory storage backend."""
-        try:
-            # Choose storage backend based on settings
-            if self.settings.REDIS_ENABLED:
-                self.storage = RedisMemoryStorage(self.settings)
-            else:
-                self.storage = SQLiteMemoryStorage(self.settings)
-            
-            await self.storage.initialize()
-            self._initialized = True
-            
-            self.logger.info(
-                "Memory manager initialized", 
-                backend=type(self.storage).__name__,
-                max_entries=self.settings.MAX_MEMORY_ENTRIES
-            )
-            
-        except Exception as e:
-            self.logger.error("Failed to initialize memory manager", error=str(e))
-            raise MemoryError(f"Memory manager initialization failed: {e}")
-
-    async def close(self) -> None:
-        """Close memory manager and storage."""
-        if self.storage:
-            await self.storage.close()
-            self._initialized = False
-            self.logger.info("Memory manager closed")
-
-    def _ensure_initialized(self) -> None:
-        """Ensure the memory manager is initialized."""
-        if not self._initialized or not self.storage:
-            raise MemoryError("Memory manager not initialized")
+        self.logger = logger
 
     async def add(
         self,
@@ -63,8 +28,6 @@ class MemoryManager(LoggerMixin):
         metadata: Optional[Dict] = None,
     ) -> Memory:
         """Add a new memory or update existing one."""
-        self._ensure_initialized()
-
         try:
             # Use default TTL if not specified
             if ttl_seconds is None:
@@ -103,8 +66,6 @@ class MemoryManager(LoggerMixin):
 
     async def get(self, key: str, touch: bool = True) -> Optional[Memory]:
         """Retrieve a memory by key."""
-        self._ensure_initialized()
-
         try:
             memory = await self.storage.retrieve(key)
             
@@ -134,8 +95,6 @@ class MemoryManager(LoggerMixin):
 
     async def delete(self, key: str) -> bool:
         """Delete a memory by key."""
-        self._ensure_initialized()
-
         try:
             deleted = await self.storage.delete(key)
             
@@ -159,8 +118,6 @@ class MemoryManager(LoggerMixin):
         metadata: Optional[Dict] = None,
     ) -> Optional[Memory]:
         """Update an existing memory."""
-        self._ensure_initialized()
-
         try:
             memory = await self.get(key, touch=False)
             if not memory:
@@ -193,72 +150,6 @@ class MemoryManager(LoggerMixin):
         except Exception as e:
             self.logger.error("Failed to update memory", key=key, error=str(e))
             raise MemoryError(f"Failed to update memory '{key}': {e}")
-
-    async def list(self, query: Optional[MemoryQuery] = None) -> List[Memory]:
-        """List memories matching the query."""
-        self._ensure_initialized()
-
-        try:
-            query = query or MemoryQuery()
-            memories = await self.storage.list_memories(query)
-            
-            self.logger.debug("Listed memories", count=len(memories))
-            return memories
-
-        except Exception as e:
-            self.logger.error("Failed to list memories", error=str(e))
-            raise MemoryError(f"Failed to list memories: {e}")
-
-    async def cleanup_expired(self) -> int:
-        """Remove all expired memories."""
-        self._ensure_initialized()
-
-        try:
-            removed_count = await self.storage.cleanup_expired()
-            
-            if removed_count > 0:
-                self.logger.info("Cleaned up expired memories", count=removed_count)
-            
-            return removed_count
-
-        except Exception as e:
-            self.logger.error("Failed to cleanup expired memories", error=str(e))
-            raise MemoryError(f"Failed to cleanup expired memories: {e}")
-
-    async def get_stats(self) -> MemoryStats:
-        """Get memory usage statistics."""
-        self._ensure_initialized()
-
-        try:
-            stats = await self.storage.get_stats()
-            
-            self.logger.debug(
-                "Memory stats retrieved",
-                total=stats.total_memories,
-                expired=stats.expired_memories
-            )
-            
-            return stats
-
-        except Exception as e:
-            self.logger.error("Failed to get memory stats", error=str(e))
-            raise MemoryError(f"Failed to get memory stats: {e}")
-
-    async def exists(self, key: str) -> bool:
-        """Check if a memory exists and is not expired."""
-        try:
-            memory = await self.get(key, touch=False)
-            return memory is not None
-        except (MemoryNotFoundError, MemoryExpiredError):
-            return False
-
-    async def touch(self, key: str) -> bool:
-        """Touch a memory to update its access time."""
-        try:
-            memory = await self.get(key, touch=True)
-            return memory is not None
-        except (MemoryNotFoundError, MemoryExpiredError):
-            return False
 
     def _get_default_ttl(self, memory_type: MemoryType) -> int:
         """Get default TTL for a memory type."""

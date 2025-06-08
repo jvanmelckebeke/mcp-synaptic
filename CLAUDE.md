@@ -41,8 +41,8 @@ docker-compose up --build
 MCP Synaptic is a modular async Python application with these key layers:
 
 1. **SynapticServer** (`core/server.py`) - Central orchestrator managing component lifecycle
-2. **Memory Management** - Pluggable backend (SQLite/Redis) with TTL-based expiration
-3. **RAG Database** - ChromaDB for vector storage with flexible embedding providers
+2. **Memory Management** - Modular storage and operation handlers with TTL-based expiration
+3. **RAG Database** - Modular document operations with ChromaDB and flexible embedding providers
 4. **MCP Protocol** - Model Context Protocol implementation with tool registration
 5. **SSE Communication** - Real-time event streaming for memory/RAG operations
 
@@ -52,8 +52,18 @@ Settings → Memory Manager → RAG Database → SSE Server → MCP Handler → 
 **Critical Patterns:**
 - **Async Context Managers**: All components use `async with` for resource management
 - **Dependency Injection**: Components receive dependencies via constructor
+- **Modular Architecture**: Domain-driven design with focused, single-responsibility modules
+- **Delegation Pattern**: Core managers coordinate between specialized operation handlers
 - **Background Tasks**: Memory cleanup and SSE heartbeats run as asyncio tasks
 - **Error Propagation**: Custom exception hierarchy with structured logging
+
+**Refactored Module Structure (as of Issues #17-#21):**
+The codebase has been refactored from monolithic files into focused, domain-specific modules:
+- `memory/storage/` - Storage backend implementations (base, sqlite, redis)
+- `memory/manager/` - Memory operation handlers (core, operations, queries)
+- `rag/embeddings/` - Embedding provider implementations (base, api, local, manager)
+- `rag/database/` - RAG operation handlers (core, documents, search, stats)
+- `utils/validation/` - Domain-specific validation modules (memory, documents, common)
 
 ## Embedding System Architecture
 
@@ -76,13 +86,38 @@ EMBEDDING_MODEL=all-MiniLM-L6-v2
 - API calls use aiohttp sessions with proper timeout/error handling
 - Local embeddings run in thread pools to avoid blocking the event loop
 - Embedding dimensions are model-specific and cached for performance
+- **Modular Provider System**: EmbeddingManager delegates to provider-specific implementations
+- **Provider Selection**: Configuration-driven provider selection (api vs local)
+- **Provider Interface**: Abstract base class ensures consistent provider APIs
+
+## RAG Database Architecture
+
+**Document Operations Structure:**
+- **RAGDatabase** (`rag/database/core.py`) - Central coordinator with lifecycle management
+- **DocumentOperations** (`rag/database/documents.py`) - Document CRUD operations handler
+- **SearchOperations** (`rag/database/search.py`) - Search and similarity operations handler  
+- **StatsOperations** (`rag/database/stats.py`) - Collection statistics operations handler
+- **Delegation Pattern**: Core database coordinates between operation handlers
+
+**ChromaDB Integration:**
+- Persistent collection management with metadata and embedding storage
+- Document lifecycle: add, get, update, delete with embedding generation
+- Search functionality with similarity thresholds and metadata filtering
+- Collection statistics with content analysis and embedding model tracking
 
 ## Memory System Design
 
 **Storage Abstraction:**
-- `MemoryStorage` protocol defines the interface
-- `SQLiteMemoryStorage` and `RedisMemoryStorage` implement backends
+- `MemoryStorage` protocol defines the interface (`memory/storage/base.py`)
+- `SQLiteMemoryStorage` and `RedisMemoryStorage` implement backends (`memory/storage/sqlite.py`, `memory/storage/redis.py`)
 - Backend selection based on `REDIS_ENABLED` configuration
+- **Modular Storage Package**: Clean separation of storage implementations
+
+**Memory Management Architecture:**
+- **MemoryManager** (`memory/manager/core.py`) - Central coordinator with lifecycle management
+- **MemoryOperations** (`memory/manager/operations.py`) - CRUD operations handler
+- **MemoryQueries** (`memory/manager/queries.py`) - Query and utility operations handler
+- **Delegation Pattern**: Core manager coordinates between operation handlers
 
 **Memory Types & TTL:**
 - Ephemeral (5 min), Short-term (1 hr), Long-term (1 week), Permanent (no expiry)
@@ -111,16 +146,29 @@ EMBEDDING_MODEL=all-MiniLM-L6-v2
 ## Testing Strategy
 
 **Test Structure:**
-- `tests/unit/` - Component isolation tests
-- `tests/integration/` - Multi-component interaction tests
+- `tests/unit/` - Component isolation tests with modular package testing
+- `tests/integration/` - Multi-component interaction tests (23 comprehensive tests)
 - Async test support with `pytest-asyncio`
-- Mock external dependencies (Redis, API calls)
+- Mock external dependencies (Redis, API calls, ChromaDB)
+
+**Modular Testing Approach:**
+- **Package Tests**: Test each refactored module's structure and interfaces
+  - `test_storage_package.py` - Memory storage backend testing
+  - `test_manager_package.py` - Memory manager operation handler testing
+  - `test_embeddings_package.py` - Embedding provider testing
+  - `test_database_package.py` - RAG database operation handler testing
+- **Integration Tests**: Validate cross-module coordination
+  - Memory system integration with real SQLite storage
+  - RAG system integration with mocked ChromaDB and embeddings
+  - Cross-system coordination (Memory ↔ RAG ↔ MCP Tools)
 
 **Coverage Targets:**
-- Memory management operations (CRUD, expiration)
-- Embedding provider switching (API vs local)
+- Memory management operations (CRUD, expiration, filtering, concurrency)
+- RAG database operations (document lifecycle, search, statistics)
+- Embedding provider switching (API vs local with delegation testing)
 - Configuration validation and error handling
-- Server lifecycle management
+- Server lifecycle management and resource cleanup
+- Cross-system error propagation and recovery
 
 ## Docker & Deployment
 
@@ -231,17 +279,22 @@ cd docker && docker-compose -f docker-compose.yaml -f overrides/laptop.yaml -f v
 
 **Adding New Features:**
 1. Define configuration in `settings.py` with validation
-2. Implement core logic with proper async patterns
-3. Add MCP tool registration in `protocol.py` if exposing to MCP clients
-4. Add SSE events if real-time updates needed
-5. Write unit tests covering happy path and error cases
-6. Update integration tests for component interactions
+2. Implement core logic with proper async patterns in appropriate modular packages
+3. Follow delegation pattern: core managers coordinate between operation handlers
+4. Add MCP tool registration in `mcp/` modules if exposing to MCP clients
+5. Add SSE events if real-time updates needed
+6. Write comprehensive package tests for new modules
+7. Write unit tests covering happy path and error cases
+8. Update integration tests for cross-component interactions
 
 **Component Dependencies:**
 - All async operations must handle `asyncio.CancelledError`
 - Database operations should use the storage abstraction layer
 - External API calls need proper timeout and retry logic
 - Memory operations should validate TTL and data size limits
+- **Modular Design**: Follow single responsibility principle within packages
+- **Interface Contracts**: Use abstract base classes for pluggable components
+- **Error Handling**: Propagate errors through delegation chain properly
 
 ## Task Management & Development Workflow
 
@@ -283,11 +336,36 @@ For major architectural changes, refactors, or complex implementations:
 - Provides detailed post-mortem for successful implementations
 
 **When to Use Issue Feedback Loop:**
-- Architectural refactors (like the FastMCP migration)
+- Architectural refactors (like the Issues #17-#21 modular refactoring)
 - Major feature implementations
 - Complex debugging sessions
 - Performance optimization projects  
 - Any task expected to take >30 minutes with multiple steps
+
+## Architectural Refactoring History
+
+**Issues #17-#21 Modular Architecture Refactoring (Completed):**
+A comprehensive refactoring that transformed monolithic files into focused, domain-specific modules:
+
+**Refactoring Scope:**
+- **1,608 lines** of monolithic code split into **25+ focused modules**
+- **5 GitHub issues** systematically addressed with dependency analysis
+- **272 unit tests** + **23 integration tests** ensuring system cohesion
+- **No backward compatibility breaking** - all functionality preserved
+
+**Refactored Modules:**
+1. **utils/validation.py** (247 lines) → `utils/validation/` package (memory, documents, common)
+2. **memory/storage.py** (430 lines) → `memory/storage/` package (base, sqlite, redis)
+3. **rag/embeddings.py** (256 lines) → `rag/embeddings/` package (base, api, local, manager)
+4. **memory/manager.py** (271 lines) → `memory/manager/` package (core, operations, queries)
+5. **rag/database.py** (404 lines) → `rag/database/` package (core, documents, search, stats)
+
+**Architectural Benefits:**
+- **Single Responsibility**: Each module has a focused, well-defined purpose
+- **Testability**: Individual components can be tested in isolation
+- **Maintainability**: Changes are localized to specific functional areas
+- **Extensibility**: New providers/handlers can be added without affecting existing code
+- **Interface Contracts**: Abstract base classes ensure consistent APIs
 
 ## CRITICAL: When to STOP and Ask for User Feedback
 
