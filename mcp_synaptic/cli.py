@@ -45,7 +45,7 @@ def run_server(
         console.print(f"[green]Starting MCP Synaptic server on {host}:{port}[/green]")
         
         server = SynapticServer(settings)
-        asyncio.run(server.start())
+        asyncio.run(server.run())
         
     except KeyboardInterrupt:
         console.print("\n[yellow]Server stopped by user[/yellow]")

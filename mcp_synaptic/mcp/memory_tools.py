@@ -39,11 +39,11 @@ class MemoryTools(LoggerMixin):
             metadata: Annotated[Optional[Dict[str, Any]], Field(
                 description="Additional metadata (not used for filtering)"
             )] = None,
-        ) -> dict:
+        ) -> Memory:
             """Add a new memory with optional expiration.
             
             Returns:
-                Dictionary containing memory data with assigned ID and timestamps
+                Memory object with assigned ID and timestamps
             """
             mem_type = MemoryType(memory_type)
 
@@ -57,7 +57,7 @@ class MemoryTools(LoggerMixin):
             )
 
             self.logger.info("Memory added", key=key, memory_type=memory_type)
-            return memory.model_dump()
+            return memory
 
         @self.mcp.tool()
         async def memory_get(
@@ -85,7 +85,7 @@ class MemoryTools(LoggerMixin):
             else:
                 self.logger.debug("Memory not found", key=key)
                 
-            return memory.model_dump() if memory else None
+            return memory
 
         @self.mcp.tool()
         async def memory_update(
@@ -103,11 +103,11 @@ class MemoryTools(LoggerMixin):
             metadata: Annotated[Optional[Dict[str, Any]], Field(
                 description="New metadata to replace existing metadata (if provided)"
             )] = None,
-        ) -> Optional[dict]:
+        ) -> Optional[Memory]:
             """Update an existing memory's data, TTL, or metadata.
             
             Returns:
-                Updated memory dictionary if found, None if not found
+                Updated memory object if found, None if not found
                 
             Note:
                 Only provided parameters are updated, others remain unchanged.
@@ -126,7 +126,7 @@ class MemoryTools(LoggerMixin):
             else:
                 self.logger.debug("Memory not found for update", key=key)
 
-            return memory.model_dump() if memory else None
+            return memory
 
         @self.mcp.tool()
         async def memory_delete(
@@ -170,11 +170,11 @@ class MemoryTools(LoggerMixin):
                 description="Number of results to skip for pagination",
                 ge=0
             )] = 0,
-        ) -> List[dict]:
+        ) -> List[Memory]:
             """List memories with optional filtering and pagination.
             
             Returns:
-                List of memory dictionaries matching the criteria
+                List of memory objects matching the criteria
                 
             Example:
                 # Get all short-term memories
@@ -205,14 +205,14 @@ class MemoryTools(LoggerMixin):
 
             memories = await self.memory_manager.list(query)
             self.logger.debug("Memories listed", count=len(memories))
-            return [memory.model_dump() for memory in memories]
+            return memories
 
         @self.mcp.tool()
-        async def memory_stats() -> dict:
+        async def memory_stats() -> MemoryStats:
             """Get comprehensive memory usage statistics.
             
             Returns:
-                Dictionary containing memory statistics:
+                MemoryStats object containing memory statistics:
                 - total_memories: Total number of memories stored
                 - memories_by_type: Count breakdown by memory type
                 - expired_memories: Number of expired memories
@@ -228,4 +228,4 @@ class MemoryTools(LoggerMixin):
             """
             stats = await self.memory_manager.get_stats()
             self.logger.debug("Memory stats retrieved")
-            return stats.model_dump()
+            return stats

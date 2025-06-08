@@ -30,11 +30,11 @@ class RAGTools(LoggerMixin):
             document_id: Annotated[Optional[str], Field(
                 description="Optional custom ID (auto-generated if not provided)"
             )] = None,
-        ) -> dict:
+        ) -> Document:
             """Add a document to the RAG database for vector search.
             
             Returns:
-                Document dictionary with ID, embeddings, and timestamps
+                Document object with ID, embeddings, and timestamps
                 
             Note:
                 The document content will be embedded using the configured
@@ -47,16 +47,16 @@ class RAGTools(LoggerMixin):
             )
 
             self.logger.info("Document added", document_id=document.id)
-            return document.model_dump()
+            return document
 
         @self.mcp.tool()
         async def rag_get_document(
             document_id: Annotated[str, Field(description="Unique identifier of the document")],
-        ) -> Optional[dict]:
+        ) -> Optional[Document]:
             """Retrieve a document by its unique ID.
             
             Returns:
-                Document dictionary if found, None if not found
+                Document object if found, None if not found
             """
             document = await self.rag_database.get_document(document_id)
             
@@ -65,7 +65,7 @@ class RAGTools(LoggerMixin):
             else:
                 self.logger.debug("Document not found", document_id=document_id)
                 
-            return document.model_dump() if document else None
+            return document
 
         @self.mcp.tool()
         async def rag_update_document(
@@ -76,11 +76,11 @@ class RAGTools(LoggerMixin):
             metadata: Annotated[Optional[Dict[str, Any]], Field(
                 description="New metadata (replaces existing if provided)"
             )] = None,
-        ) -> Optional[dict]:
+        ) -> Optional[Document]:
             """Update an existing document's content or metadata.
             
             Returns:
-                Updated document dictionary if found, None if not found
+                Updated document object if found, None if not found
                 
             Note:
                 Updating content will regenerate embeddings, which may take time.
@@ -97,7 +97,7 @@ class RAGTools(LoggerMixin):
             else:
                 self.logger.debug("Document not found for update", document_id=document_id)
 
-            return document.model_dump() if document else None
+            return document
 
         @self.mcp.tool()
         async def rag_delete_document(
@@ -135,11 +135,11 @@ class RAGTools(LoggerMixin):
             metadata_filter: Annotated[Optional[Dict[str, Any]], Field(
                 description="Filter results by metadata key-value pairs"
             )] = None,
-        ) -> List[dict]:
+        ) -> List[DocumentSearchResult]:
             """Search for documents using semantic similarity.
             
             Returns:
-                List of search result dictionaries with similarity scores,
+                List of search result objects with similarity scores,
                 ordered by relevance (highest similarity first)
                 
             Example:
@@ -162,14 +162,14 @@ class RAGTools(LoggerMixin):
             )
 
             self.logger.info("Document search performed", query=query, results=len(results))
-            return [result.model_dump() for result in results]
+            return results
 
         @self.mcp.tool()
-        async def rag_collection_stats() -> dict:
+        async def rag_collection_stats() -> CollectionStats:
             """Get comprehensive statistics about the RAG document collection.
             
             Returns:
-                Dictionary containing collection statistics:
+                CollectionStats object containing collection statistics:
                 - total_documents: Total number of documents in collection
                 - total_embeddings: Total number of embedding vectors
                 - average_document_length: Average content length
@@ -185,4 +185,4 @@ class RAGTools(LoggerMixin):
             stats = CollectionStats(**stats_dict)
             
             self.logger.debug("RAG collection stats retrieved")
-            return stats.model_dump()
+            return stats
