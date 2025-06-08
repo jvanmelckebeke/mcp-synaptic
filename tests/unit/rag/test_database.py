@@ -1,7 +1,7 @@
 """Tests for RAG database implementation."""
 
 import asyncio
-from datetime import datetime
+from datetime import datetime, UTC
 from typing import Dict, Any, List
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
@@ -231,7 +231,7 @@ class TestRAGDatabase:
             doc_id = "test-doc-123"
             content = "This is a test document."
             metadata = {"source": "test"}
-            created_at = datetime.utcnow()
+            created_at = datetime.now(UTC)
             
             # Mock ChromaDB response
             rag_database.collection.get.return_value = {
@@ -314,7 +314,7 @@ class TestRAGDatabase:
             original_content = "Original content"
             new_content = "Updated content"
             metadata = {"source": "test"}
-            created_at = datetime.utcnow()
+            created_at = datetime.now(UTC)
             
             # Mock existing document
             existing_doc = Document(
@@ -433,8 +433,8 @@ class TestRAGDatabase:
                 "ids": [["doc1", "doc2"]],
                 "documents": [["First document", "Second document"]],
                 "metadatas": [[
-                    {"source": "test1", "created_at": datetime.utcnow().isoformat()},
-                    {"source": "test2", "created_at": datetime.utcnow().isoformat()}
+                    {"source": "test1", "created_at": datetime.now(UTC).isoformat()},
+                    {"source": "test2", "created_at": datetime.now(UTC).isoformat()}
                 ]],
                 "distances": [[0.2, 0.4]]
             }

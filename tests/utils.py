@@ -2,7 +2,7 @@
 
 import asyncio
 from contextlib import asynccontextmanager
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from typing import Any, AsyncGenerator, Dict, List, Optional
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -45,7 +45,7 @@ class MemoryTestHelper:
     ) -> Memory:
         """Create a test memory with configurable parameters."""
         if data is None:
-            data = {"test": "data", "timestamp": datetime.utcnow().isoformat()}
+            data = {"test": "data", "timestamp": datetime.now(UTC).isoformat()}
         
         memory = Memory(
             key=key,
@@ -57,7 +57,7 @@ class MemoryTestHelper:
         
         if expired and ttl_seconds and ttl_seconds > 0:
             # Set expiration to past time
-            memory.expires_at = datetime.utcnow() - timedelta(seconds=10)
+            memory.expires_at = datetime.now(UTC) - timedelta(seconds=10)
         
         return memory
     
@@ -141,7 +141,7 @@ class EmbeddingTestHelper:
                     "id": f"doc_{i}",
                     "source": f"test_source_{i}",
                     "category": "test",
-                    "created_at": datetime.utcnow().isoformat()
+                    "created_at": datetime.now(UTC).isoformat()
                 }
             }
             for i in range(count)

@@ -1,7 +1,7 @@
 """True unit tests for Memory models with full mocking."""
 
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from unittest.mock import patch, AsyncMock
 from pydantic import ValidationError
 
@@ -233,7 +233,7 @@ class TestMemoryStats:
     def test_memory_stats_creation(self):
         """Test MemoryStats model creation."""
         # Arrange
-        generated_at = datetime.utcnow()
+        generated_at = datetime.now(UTC)
         memories_by_type = {
             MemoryType.SHORT_TERM: 10,
             MemoryType.LONG_TERM: 5,
@@ -266,7 +266,7 @@ class TestMemoryStats:
         """Test MemoryStats with optional fields as None."""
         # Act
         stats = MemoryStats(
-            generated_at=datetime.utcnow(),
+            generated_at=datetime.now(UTC),
             total_memories=0,
             memories_by_type={},
             expired_memories=0,

@@ -1,6 +1,6 @@
 """Tests for RAG models."""
 
-from datetime import datetime
+from datetime import datetime, UTC
 from typing import Dict, Any
 
 import pytest
@@ -122,8 +122,8 @@ class TestDocument:
         full_data = {
             **sample_document_data,
             "id": "test-doc-123",
-            "created_at": datetime.utcnow().isoformat(),
-            "updated_at": datetime.utcnow().isoformat()
+            "created_at": datetime.now(UTC).isoformat(),
+            "updated_at": datetime.now(UTC).isoformat()
         }
         
         document = Document.model_validate(full_data)
@@ -286,16 +286,16 @@ class TestDocumentSearchResponse:
         response = DocumentSearchResponse(
             results=[result],
             query="test query",
-            total_results=1,
-            took_ms=150,
+            total_count=1,
+            search_time_ms=150,
             embedding_model="text-embedding-ada-002",
             similarity_threshold=0.7
         )
         
-        assert len(response.results) == 1
+        assert len(response.items) == 1
         assert response.query == "test query"
-        assert response.total_results == 1
-        assert response.took_ms == 150
+        assert response.total_count == 1
+        assert response.search_time_ms == 150
         assert response.embedding_model == "text-embedding-ada-002"
         assert response.similarity_threshold == 0.7
 

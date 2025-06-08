@@ -2,7 +2,7 @@
 
 import pytest
 from unittest.mock import AsyncMock, patch, MagicMock
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 
 from mcp_synaptic.memory.manager import MemoryManager
 from mcp_synaptic.memory.storage import MemoryStorage
@@ -35,7 +35,7 @@ def mock_memory_storage():
     mock.list_memories = AsyncMock(return_value=[])
     mock.cleanup_expired = AsyncMock(return_value=0)
     mock.get_stats = AsyncMock(return_value=MemoryStats(
-        generated_at=datetime.utcnow(),
+        generated_at=datetime.now(UTC),
         total_memories=0,
         memories_by_type={},
         expired_memories=0,
@@ -393,14 +393,14 @@ class TestMemoryManagerOperations:
         """Test successful statistics retrieval."""
         # Arrange
         expected_stats = MemoryStats(
-            generated_at=datetime.utcnow(),
+            generated_at=datetime.now(UTC),
             total_memories=10,
             memories_by_type={MemoryType.SHORT_TERM: 8, MemoryType.LONG_TERM: 2},
             expired_memories=1,
             total_size_bytes=2048,
             average_ttl_seconds=1800.0,
-            oldest_memory=datetime.utcnow() - timedelta(days=1),
-            newest_memory=datetime.utcnow() - timedelta(minutes=5),
+            oldest_memory=datetime.now(UTC) - timedelta(days=1),
+            newest_memory=datetime.now(UTC) - timedelta(minutes=5),
             most_accessed_count=25
         )
         mock_memory_storage.get_stats.return_value = expected_stats

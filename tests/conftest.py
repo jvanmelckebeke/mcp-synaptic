@@ -3,7 +3,7 @@
 import asyncio
 import os
 import tempfile
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from pathlib import Path
 from typing import Any, AsyncGenerator, Dict, Generator
 from unittest.mock import AsyncMock, MagicMock
@@ -138,7 +138,7 @@ def expired_memory(sample_memory_data: Dict[str, Any]) -> Memory:
         metadata={"test": True}
     )
     # Set expiration to past time
-    memory.expires_at = datetime.utcnow() - timedelta(seconds=10)
+    memory.expires_at = datetime.now(UTC) - timedelta(seconds=10)
     return memory
 
 

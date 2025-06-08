@@ -74,6 +74,8 @@ class DocumentSearchQuery(SearchQuery):
 class DocumentSearchResult(SearchResult[Document]):
     """Search result for a document with additional RAG metadata."""
     
+    model_config = {"extra": "allow"}
+    
     distance: float = Field(description="Vector distance (lower = more similar)")
     embedding_model: Optional[str] = Field(
         default=None,

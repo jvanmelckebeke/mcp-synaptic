@@ -110,7 +110,7 @@ class StatsModel(SynapticBaseModel):
 class SearchQuery(SynapticBaseModel):
     """Base model for search queries."""
     
-    query: str = Field(description="Search query string")
+    query: str = Field(default="", description="Search query string")
     limit: int = Field(default=10, ge=1, le=100, description="Maximum results to return")
     offset: int = Field(default=0, ge=0, description="Number of results to skip")
 

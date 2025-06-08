@@ -1,7 +1,7 @@
 """Tests for memory models."""
 
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from typing import Dict, Any
 
 import pytest
@@ -67,7 +67,7 @@ class TestMemory:
         return {
             "user_id": "test_user",
             "session_data": {"theme": "dark", "language": "en"},
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(UTC).isoformat()
         }
 
     def test_memory_creation_minimal(self, sample_memory_data):
@@ -147,7 +147,7 @@ class TestMemory:
 
     def test_memory_is_expired_future_expiry(self, sample_memory_data):
         """Test is_expired with future expiry time."""
-        future_time = datetime.utcnow() + timedelta(hours=1)
+        future_time = datetime.now(UTC) + timedelta(hours=1)
         memory = Memory(
             key="future_expiry",
             data=sample_memory_data,
@@ -158,7 +158,7 @@ class TestMemory:
 
     def test_memory_is_expired_past_expiry(self, sample_memory_data):
         """Test is_expired with past expiry time."""
-        past_time = datetime.utcnow() - timedelta(hours=1)
+        past_time = datetime.now(UTC) - timedelta(hours=1)
         memory = Memory(
             key="past_expiry",
             data=sample_memory_data,
@@ -313,9 +313,9 @@ class TestMemory:
             "data": sample_memory_data,
             "memory_type": "short_term",
             "expiration_policy": "absolute",
-            "created_at": datetime.utcnow().isoformat(),
-            "updated_at": datetime.utcnow().isoformat(),
-            "last_accessed_at": datetime.utcnow().isoformat(),
+            "created_at": datetime.now(UTC).isoformat(),
+            "updated_at": datetime.now(UTC).isoformat(),
+            "last_accessed_at": datetime.now(UTC).isoformat(),
             "ttl_seconds": 3600,
             "access_count": 5,
             "tags": {"type": "test"},
@@ -392,7 +392,7 @@ class TestMemoryQuery:
 
     def test_memory_query_datetime_filters(self):
         """Test MemoryQuery with datetime filters."""
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         yesterday = now - timedelta(days=1)
         tomorrow = now + timedelta(days=1)
         
@@ -424,8 +424,8 @@ class TestMemoryStats:
             expired_memories=5,
             total_size_bytes=1024000,
             average_ttl_seconds=7200.0,
-            oldest_memory=datetime.utcnow() - timedelta(days=30),
-            newest_memory=datetime.utcnow(),
+            oldest_memory=datetime.now(UTC) - timedelta(days=30),
+            newest_memory=datetime.now(UTC),
             most_accessed_count=25
         )
         
@@ -542,14 +542,14 @@ class TestMemoryListResponse:
         
         response = MemoryListResponse(
             items=memories,
-            total=2,
-            page=1,
-            per_page=10,
-            has_next=False
+            total_count=2,
+            offset=0,
+            limit=10
         )
         
         assert len(response.items) == 2
-        assert response.total == 2
-        assert response.page == 1
-        assert response.per_page == 10
-        assert response.has_next is False
+        assert response.total_count == 2
+        assert response.returned_count == 2
+        assert response.offset == 0
+        assert response.limit == 10
+        assert response.has_more is False
