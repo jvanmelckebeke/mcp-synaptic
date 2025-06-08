@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional
 from ...config.settings import Settings
 from ...core.exceptions import RAGError
 from ...models.rag import Document, DocumentSearchResult
-from ..embeddings import EmbeddingManager
+from ..embeddings.manager import EmbeddingManager
 
 
 class SearchOperations:

@@ -7,7 +7,7 @@ from uuid import uuid4
 from ...config.settings import Settings
 from ...core.exceptions import RAGError
 from ...models.rag import Document
-from ..embeddings import EmbeddingManager
+from ..embeddings.manager import EmbeddingManager
 
 
 class DocumentOperations:
