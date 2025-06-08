@@ -370,3 +370,44 @@ As a second instance of Claude Code assistant, the following protocol applies:
 
 **Permission Request Process:**
 If destructive or file-modifying operations are needed, explicitly request permission from the user before proceeding.
+
+## Multi-Instance Claude Code Workflow
+
+**Self-Discovery System:**
+Each Claude Code instance can automatically identify itself using the working directory:
+```bash
+pwd  # Shows: /path/to/mcp-synaptic-worktree/claude-1 or claude-2, etc.
+```
+
+**Instance-Specific Workflow:**
+Each Claude instance operates with their own persistent branch (`claude-1`, `claude-2`, etc.) that serves as their personal development branch while coordinating with the main `dev` branch.
+
+**Step-by-Step Workflow:**
+1. **Sync with dev**: `git merge origin/dev --no-ff -m "Sync with latest dev changes"`
+2. **Create feature branch FROM claude-#**: `git checkout -b feat/my-feature` 
+3. **Implement changes**: Make commits with descriptive messages
+4. **Push feature branch**: `git push -u origin feat/my-feature`
+5. **Create Pull Request**: Submit PR to merge feature branch into `dev`
+6. **After merge**: Sync back with `git merge origin/dev --no-ff`
+7. **Cleanup**: `git branch -d feat/my-feature`
+
+**Why This Works:**
+- **Worktree Compatible**: Multiple Claude instances can't checkout `dev` simultaneously
+- **Personal Base Branch**: Each `claude-#` branch acts as a stable working branch
+- **Stay Current**: Regular merges from `dev` keep instances synchronized
+- **Clean Features**: Feature branches created from updated `claude-#` branch
+- **Proper Integration**: PRs merge features into `dev`, then sync back to `claude-#`
+
+**Multi-Instance Coordination:**
+- **Conflict-Free**: Each Claude works from their own base branch
+- **Synchronized**: All instances stay current with dev through merges
+- **Independent**: Multiple instances can work simultaneously without conflicts
+- **Scalable**: Add new instances by creating new worktree directories
+
+**Setup for New Instance:**
+1. User creates new worktree: `git worktree add ../claude-X claude-X`
+2. Claude runs: `pwd` to discover identity (`claude-X`)
+3. Claude runs: `git merge origin/dev --no-ff` to sync
+4. Claude proceeds with feature branch workflow from their `claude-X` branch
+
+This system allows unlimited parallel Claude Code sessions while maintaining clean git workflow and proper dev branch integration.
