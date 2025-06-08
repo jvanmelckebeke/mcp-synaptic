@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, patch, MagicMock
 from datetime import datetime, timedelta, UTC
 
 from mcp_synaptic.memory.manager import MemoryManager
-from mcp_synaptic.memory.storage import MemoryStorage
+from mcp_synaptic.memory.storage.base import MemoryStorage
 from mcp_synaptic.models.memory import Memory, MemoryType, MemoryQuery, MemoryStats
 from mcp_synaptic.config.settings import Settings
 from mcp_synaptic.core.exceptions import MemoryError, MemoryNotFoundError, ValidationError
