@@ -1,6 +1,6 @@
 """Memory domain models for MCP Synaptic."""
 
-from datetime import datetime
+from datetime import datetime, UTC
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
@@ -42,7 +42,7 @@ class Memory(IdentifiedModel):
     
     # Timestamps
     last_accessed_at: datetime = Field(
-        default_factory=datetime.utcnow,
+        default_factory=lambda: datetime.now(UTC),
         description="When memory was last accessed"
     )
     expires_at: Optional[datetime] = Field(
@@ -80,11 +80,11 @@ class Memory(IdentifiedModel):
         """Check if memory has expired."""
         if self.expiration_policy == ExpirationPolicy.NEVER or not self.expires_at:
             return False
-        return datetime.utcnow() >= self.expires_at
+        return datetime.now(UTC) >= self.expires_at
     
     def touch(self) -> None:
         """Update access timestamp and count."""
-        self.last_accessed_at = datetime.utcnow()
+        self.last_accessed_at = datetime.now(UTC)
         self.access_count += 1
         
         # Update sliding expiration
