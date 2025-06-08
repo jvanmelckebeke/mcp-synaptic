@@ -53,7 +53,7 @@ def mock_memory_storage():
 def memory_manager(mock_settings, mock_memory_storage):
     """Create MemoryManager with mocked dependencies."""
     manager = MemoryManager(mock_settings)
-    manager._storage = mock_memory_storage
+    manager.storage = mock_memory_storage
     manager._initialized = True
     return manager
 
@@ -77,7 +77,7 @@ class TestMemoryManagerInitialization:
             # Assert
             mock_sqlite.assert_called_once_with(mock_settings)
             mock_storage_instance.initialize.assert_called_once()
-            assert manager._storage == mock_storage_instance
+            assert manager.storage == mock_storage_instance
             assert manager._initialized
 
     @pytest.mark.asyncio
@@ -147,7 +147,7 @@ class TestMemoryManagerCRUD:
         mock_memory_storage.store.return_value = expected_memory
         
         # Act
-        result = await memory_manager.add_memory(
+        result = await memory_manager.add(
             key=key,
             data=data,
             memory_type=memory_type
@@ -169,7 +169,7 @@ class TestMemoryManagerCRUD:
         data = {"test": "data"}
         
         # Act
-        await memory_manager.add_memory(key=key, data=data)
+        await memory_manager.add(key=key, data=data)
         
         # Assert
         mock_memory_storage.store.assert_called_once()
@@ -184,7 +184,7 @@ class TestMemoryManagerCRUD:
         
         # Act & Assert
         with pytest.raises(MemoryError) as exc_info:
-            await memory_manager.add_memory("key", {"data": "test"})
+            await memory_manager.add("key", {"data": "test"})
         
         assert "Failed to add memory" in str(exc_info.value)
 
@@ -197,10 +197,10 @@ class TestMemoryManagerCRUD:
         mock_memory_storage.retrieve.return_value = expected_memory
         
         # Act
-        result = await memory_manager.get_memory(key)
+        result = await memory_manager.get(key)
         
         # Assert
-        mock_memory_storage.retrieve.assert_called_once_with(key, touch=True)
+        mock_memory_storage.retrieve.assert_called_once_with(key)
         assert result == expected_memory
 
     @pytest.mark.asyncio
@@ -210,7 +210,7 @@ class TestMemoryManagerCRUD:
         mock_memory_storage.retrieve.return_value = None
         
         # Act
-        result = await memory_manager.get_memory("nonexistent_key")
+        result = await memory_manager.get("nonexistent_key")
         
         # Assert
         assert result is None
@@ -224,10 +224,10 @@ class TestMemoryManagerCRUD:
         mock_memory_storage.retrieve.return_value = expected_memory
         
         # Act
-        result = await memory_manager.get_memory(key, touch=False)
+        result = await memory_manager.get(key, touch=False)
         
         # Assert
-        mock_memory_storage.retrieve.assert_called_once_with(key, touch=False)
+        mock_memory_storage.retrieve.assert_called_once_with(key)
         assert result == expected_memory
 
     @pytest.mark.asyncio
@@ -240,10 +240,10 @@ class TestMemoryManagerCRUD:
         mock_memory_storage.retrieve.return_value = existing_memory
         
         # Act
-        result = await memory_manager.update_memory(key, new_data)
+        result = await memory_manager.update(key, data=new_data)
         
         # Assert
-        mock_memory_storage.retrieve.assert_called_once_with(key, touch=False)
+        mock_memory_storage.retrieve.assert_called_once_with(key)
         mock_memory_storage.store.assert_called_once()
         
         stored_memory = mock_memory_storage.store.call_args[0][0]
@@ -258,7 +258,7 @@ class TestMemoryManagerCRUD:
         mock_memory_storage.retrieve.return_value = None
         
         # Act
-        result = await memory_manager.update_memory("nonexistent", {"data": "new"})
+        result = await memory_manager.update("nonexistent", data={"data": "new"})
         
         # Assert
         assert result is None
@@ -272,7 +272,7 @@ class TestMemoryManagerCRUD:
         mock_memory_storage.delete.return_value = True
         
         # Act
-        result = await memory_manager.delete_memory(key)
+        result = await memory_manager.delete(key)
         
         # Assert
         mock_memory_storage.delete.assert_called_once_with(key)
@@ -285,7 +285,7 @@ class TestMemoryManagerCRUD:
         mock_memory_storage.delete.return_value = False
         
         # Act
-        result = await memory_manager.delete_memory("nonexistent")
+        result = await memory_manager.delete("nonexistent")
         
         # Assert
         assert result is False
@@ -306,7 +306,7 @@ class TestMemoryManagerOperations:
         mock_memory_storage.list_memories.return_value = expected_memories
         
         # Act
-        result = await memory_manager.list_memories(query)
+        result = await memory_manager.list(query)
         
         # Assert
         mock_memory_storage.list_memories.assert_called_once_with(query)
@@ -316,7 +316,7 @@ class TestMemoryManagerOperations:
     async def test_list_memories_with_default_query(self, memory_manager, mock_memory_storage):
         """Test memory listing with default query."""
         # Act
-        await memory_manager.list_memories()
+        await memory_manager.list()
         
         # Assert
         mock_memory_storage.list_memories.assert_called_once()
@@ -330,10 +330,10 @@ class TestMemoryManagerOperations:
         mock_memory_storage.retrieve.return_value = Memory(key="test", data={})
         
         # Act
-        result = await memory_manager.exists_memory("test")
+        result = await memory_manager.exists("test")
         
         # Assert
-        mock_memory_storage.retrieve.assert_called_once_with("test", touch=False)
+        mock_memory_storage.retrieve.assert_called_once_with("test")
         assert result is True
 
     @pytest.mark.asyncio
@@ -343,7 +343,7 @@ class TestMemoryManagerOperations:
         mock_memory_storage.retrieve.return_value = None
         
         # Act
-        result = await memory_manager.exists_memory("nonexistent")
+        result = await memory_manager.exists("nonexistent")
         
         # Assert
         assert result is False
@@ -357,10 +357,10 @@ class TestMemoryManagerOperations:
         mock_memory_storage.retrieve.return_value = memory
         
         # Act
-        result = await memory_manager.touch_memory(key)
+        result = await memory_manager.touch(key)
         
         # Assert
-        mock_memory_storage.retrieve.assert_called_once_with(key, touch=True)
+        mock_memory_storage.retrieve.assert_called_once_with(key)
         assert result is True
 
     @pytest.mark.asyncio
@@ -370,7 +370,7 @@ class TestMemoryManagerOperations:
         mock_memory_storage.retrieve.return_value = None
         
         # Act
-        result = await memory_manager.touch_memory("nonexistent")
+        result = await memory_manager.touch("nonexistent")
         
         # Assert
         assert result is False
@@ -420,7 +420,7 @@ class TestMemoryManagerValidation:
     async def test_ensure_initialized_check_passes(self, memory_manager):
         """Test that initialized manager passes validation."""
         # Act & Assert - Should not raise
-        await memory_manager.get_memory("test")
+        await memory_manager.get("test")
 
     @pytest.mark.asyncio
     async def test_ensure_initialized_check_fails(self, mock_settings):
@@ -431,7 +431,7 @@ class TestMemoryManagerValidation:
         
         # Act & Assert
         with pytest.raises(MemoryError) as exc_info:
-            await manager.get_memory("test")
+            await manager.get("test")
         
         assert "Memory manager not initialized" in str(exc_info.value)
 
