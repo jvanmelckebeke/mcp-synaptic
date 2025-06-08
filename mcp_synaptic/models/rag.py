@@ -2,7 +2,7 @@
 
 from typing import Any, Dict, List, Optional
 
-from pydantic import Field, field_validator
+from pydantic import ConfigDict, Field, field_validator
 
 from .base import (
     IdentifiedModel, 
@@ -73,6 +73,8 @@ class DocumentSearchQuery(SearchQuery):
 
 class DocumentSearchResult(SearchResult[Document]):
     """Search result for a document with additional RAG metadata."""
+    
+    model_config = ConfigDict(extra="allow")
     
     distance: float = Field(description="Vector distance (lower = more similar)")
     embedding_model: Optional[str] = Field(
