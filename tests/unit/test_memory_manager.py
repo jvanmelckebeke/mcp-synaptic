@@ -115,7 +115,7 @@ class TestMemoryManagerInitialization:
             with pytest.raises(MemoryError) as exc_info:
                 await manager.initialize()
             
-            assert "Failed to initialize memory manager" in str(exc_info.value)
+            assert "Memory manager initialization failed" in str(exc_info.value)
             assert not manager._initialized
 
     @pytest.mark.asyncio

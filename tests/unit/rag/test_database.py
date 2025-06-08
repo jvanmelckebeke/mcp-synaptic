@@ -436,7 +436,7 @@ class TestRAGDatabase:
                     {"source": "test1", "created_at": datetime.now(UTC).isoformat()},
                     {"source": "test2", "created_at": datetime.now(UTC).isoformat()}
                 ]],
-                "distances": [[0.2, 0.4]]
+                "distances": [[0.2, 0.25]]
             }
             
             results = await rag_database.search(query, limit=5)
@@ -453,7 +453,7 @@ class TestRAGDatabase:
             
             # Check second result
             assert results[1].item.id == "doc2"
-            assert results[1].score == pytest.approx(0.6, abs=0.01)  # 1.0 - 0.4
+            assert results[1].score == pytest.approx(0.75, abs=0.01)  # 1.0 - 0.25
             assert results[1].rank == 2
             
             # Verify query embedding was generated

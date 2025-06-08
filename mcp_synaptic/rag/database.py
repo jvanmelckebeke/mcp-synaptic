@@ -303,20 +303,23 @@ class RAGDatabase(LoggerMixin):
                 
                 # Parse timestamps
                 created_at = datetime.fromisoformat(created_at_str.replace('Z', '+00:00'))
-                updated_at = None
+                
+                # Build document kwargs - only include updated_at if we have a value
+                doc_kwargs = {
+                    "id": doc_id,
+                    "content": content,
+                    "metadata": metadata,
+                    "created_at": created_at,
+                    "embedding_model": embedding_model,
+                    "embedding_dimension": embedding_dimension,
+                }
+                
+                # Only include updated_at if we have a value, otherwise let model use default
                 if updated_at_str:
-                    updated_at = datetime.fromisoformat(updated_at_str.replace('Z', '+00:00'))
+                    doc_kwargs["updated_at"] = datetime.fromisoformat(updated_at_str.replace('Z', '+00:00'))
 
                 # Create document
-                document = Document(
-                    id=doc_id,
-                    content=content,
-                    metadata=metadata,
-                    created_at=created_at,
-                    updated_at=updated_at,
-                    embedding_model=embedding_model,
-                    embedding_dimension=embedding_dimension,
-                )
+                document = Document(**doc_kwargs)
 
                 # Create search result
                 search_result = DocumentSearchResult(
