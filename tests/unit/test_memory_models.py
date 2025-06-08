@@ -48,10 +48,11 @@ class TestMemory:
     def test_memory_expiration_property_expired(self, mock_datetime):
         """Test is_expired property for expired memories."""
         # Arrange - Mock current time to be after expiration
-        past_time = datetime(2024, 1, 1, 12, 0, 0)
-        current_time = datetime(2024, 1, 1, 13, 30, 0)  # 1.5 hours later
+        past_time = datetime(2024, 1, 1, 12, 0, 0, tzinfo=UTC)
+        current_time = datetime(2024, 1, 1, 13, 30, 0, tzinfo=UTC)  # 1.5 hours later
         
-        mock_datetime.utcnow.return_value = current_time
+        # Mock datetime.now to return current_time when called with UTC
+        mock_datetime.now.return_value = current_time
         
         memory = Memory(
             key="expired_key",
@@ -67,10 +68,11 @@ class TestMemory:
     def test_memory_expiration_property_not_expired(self, mock_datetime):
         """Test is_expired property for valid memories."""
         # Arrange - Mock current time to be before expiration
-        current_time = datetime(2024, 1, 1, 12, 0, 0)
-        future_time = datetime(2024, 1, 1, 14, 0, 0)  # 2 hours later
+        current_time = datetime(2024, 1, 1, 12, 0, 0, tzinfo=UTC)
+        future_time = datetime(2024, 1, 1, 14, 0, 0, tzinfo=UTC)  # 2 hours later
         
-        mock_datetime.utcnow.return_value = current_time
+        # Mock datetime.now to return current_time when called with UTC
+        mock_datetime.now.return_value = current_time
         
         memory = Memory(
             key="valid_key",
@@ -86,15 +88,16 @@ class TestMemory:
     def test_memory_touch_updates_access_info(self, mock_datetime):
         """Test touch method updates access timestamp and count."""
         # Arrange
-        original_time = datetime(2024, 1, 1, 12, 0, 0)
-        touch_time = datetime(2024, 1, 1, 12, 30, 0)
+        original_time = datetime(2024, 1, 1, 12, 0, 0, tzinfo=UTC)
+        touch_time = datetime(2024, 1, 1, 12, 30, 0, tzinfo=UTC)
         
-        mock_datetime.utcnow.return_value = original_time
+        # Mock datetime.now to return original_time initially
+        mock_datetime.now.return_value = original_time
         memory = Memory(key="test_key", data={"test": "data"})
         original_count = memory.access_count
         
-        # Act
-        mock_datetime.utcnow.return_value = touch_time
+        # Act - Update mock to return touch_time for the touch() call
+        mock_datetime.now.return_value = touch_time
         memory.touch()
         
         # Assert
@@ -105,8 +108,9 @@ class TestMemory:
     def test_memory_touch_updates_sliding_expiration(self, mock_datetime):
         """Test touch method updates sliding expiration times."""
         # Arrange
-        touch_time = datetime(2024, 1, 1, 12, 30, 0)
-        mock_datetime.utcnow.return_value = touch_time
+        touch_time = datetime(2024, 1, 1, 12, 30, 0, tzinfo=UTC)
+        # Mock datetime.now to return touch_time when called with UTC
+        mock_datetime.now.return_value = touch_time
         
         memory = Memory(
             key="sliding_key",
