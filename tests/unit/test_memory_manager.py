@@ -53,9 +53,17 @@ def mock_memory_storage():
 @pytest.fixture
 def memory_manager(mock_settings, mock_memory_storage):
     """Create MemoryManager with mocked dependencies."""
+    from mcp_synaptic.memory.manager.operations import MemoryOperations
+    from mcp_synaptic.memory.manager.queries import MemoryQueries
+    
     manager = MemoryManager(mock_settings)
     manager.storage = mock_memory_storage
     manager._initialized = True
+    
+    # Mock operation handlers
+    manager._operations = AsyncMock(spec=MemoryOperations)
+    manager._queries = AsyncMock(spec=MemoryQueries)
+    
     return manager
 
 
@@ -66,7 +74,7 @@ class TestMemoryManagerInitialization:
     async def test_initialize_creates_storage(self, mock_settings):
         """Test initialization creates appropriate storage backend."""
         # Arrange
-        with patch('mcp_synaptic.memory.manager.SQLiteMemoryStorage') as mock_sqlite:
+        with patch('mcp_synaptic.memory.manager.core.SQLiteMemoryStorage') as mock_sqlite:
             mock_storage_instance = AsyncMock()
             mock_sqlite.return_value = mock_storage_instance
             
@@ -87,7 +95,7 @@ class TestMemoryManagerInitialization:
         # Arrange
         mock_settings.REDIS_ENABLED = True
         
-        with patch('mcp_synaptic.memory.manager.RedisMemoryStorage') as mock_redis:
+        with patch('mcp_synaptic.memory.manager.core.RedisMemoryStorage') as mock_redis:
             mock_storage_instance = AsyncMock()
             mock_redis.return_value = mock_storage_instance
             
@@ -104,7 +112,7 @@ class TestMemoryManagerInitialization:
     async def test_initialize_storage_failure_raises_error(self, mock_settings):
         """Test initialization failure handling."""
         # Arrange
-        with patch('mcp_synaptic.memory.manager.SQLiteMemoryStorage') as mock_sqlite:
+        with patch('mcp_synaptic.memory.manager.core.SQLiteMemoryStorage') as mock_sqlite:
             mock_storage_instance = AsyncMock()
             mock_storage_instance.initialize.side_effect = Exception("Storage init failed")
             mock_sqlite.return_value = mock_storage_instance
@@ -139,6 +147,8 @@ class TestMemoryManagerCRUD:
         key = "test_key"
         data = {"test": "data"}
         memory_type = MemoryType.SHORT_TERM
+        expected_memory = Memory(key=key, data=data, memory_type=memory_type)
+        memory_manager._operations.add.return_value = expected_memory
         
         # Act
         result = await memory_manager.add(
@@ -148,15 +158,8 @@ class TestMemoryManagerCRUD:
         )
         
         # Assert
-        mock_memory_storage.store.assert_called_once()
-        stored_memory = mock_memory_storage.store.call_args[0][0]
-        assert stored_memory.key == key
-        assert stored_memory.data == data
-        assert stored_memory.memory_type == memory_type
-        assert stored_memory.ttl_seconds == 3600  # Default TTL
-        assert stored_memory.expires_at is not None
-        # The result should be the same object that was stored
-        assert result == stored_memory
+        memory_manager._operations.add.assert_called_once_with(key, data, memory_type, None, None, None, None)
+        assert result == expected_memory
 
     @pytest.mark.asyncio
     async def test_add_memory_with_default_ttl(self, memory_manager, mock_memory_storage, mock_settings):

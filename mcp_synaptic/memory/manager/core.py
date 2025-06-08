@@ -128,3 +128,14 @@ class MemoryManager(LoggerMixin):
         """Touch a memory to update its access time."""
         self._ensure_initialized()
         return await self._queries.touch(key)
+
+    def _get_default_ttl(self, memory_type: MemoryType) -> int:
+        """Get default TTL for a memory type."""
+        defaults = {
+            MemoryType.EPHEMERAL: 300,    # 5 minutes
+            MemoryType.SHORT_TERM: self.settings.DEFAULT_MEMORY_TTL_SECONDS,
+            MemoryType.LONG_TERM: 86400 * 7,  # 1 week
+            MemoryType.PERMANENT: 0,      # No expiration
+        }
+        
+        return defaults.get(memory_type, self.settings.DEFAULT_MEMORY_TTL_SECONDS)
