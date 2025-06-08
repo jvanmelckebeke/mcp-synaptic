@@ -30,8 +30,8 @@ class MemoryTools(LoggerMixin):
                 enum=["ephemeral", "short_term", "long_term", "permanent"]
             )] = "short_term",
             ttl_seconds: Annotated[Optional[int], Field(
-                description="Custom time-to-live in seconds (overrides type defaults)",
-                ge=1
+                description="Custom time-to-live in seconds (overrides type defaults, 0 for permanent)",
+                ge=0
             )] = None,
             tags: Annotated[Optional[Dict[str, str]], Field(
                 description="Optional key-value tags for categorization and filtering"
@@ -94,8 +94,8 @@ class MemoryTools(LoggerMixin):
                 description="New data to replace existing (if provided)"
             )] = None,
             extend_ttl: Annotated[Optional[int], Field(
-                description="New TTL in seconds to extend expiration (if provided)",
-                ge=1
+                description="New TTL in seconds to extend expiration (if provided, 0 for permanent)",
+                ge=0
             )] = None,
             tags: Annotated[Optional[Dict[str, str]], Field(
                 description="New tags to replace existing tags (if provided)"

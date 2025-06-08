@@ -53,8 +53,7 @@ class Memory(IdentifiedModel):
     # Metadata
     ttl_seconds: Optional[int] = Field(
         default=None,
-        ge=1,
-        description="Time to live in seconds"
+        description="Time to live in seconds (0 for permanent)"
     )
     access_count: int = Field(
         default=0,
@@ -94,6 +93,14 @@ class Memory(IdentifiedModel):
             from datetime import timedelta
             self.expires_at = self.last_accessed_at + timedelta(seconds=self.ttl_seconds)
     
+    @field_validator('ttl_seconds')
+    @classmethod
+    def validate_ttl_seconds(cls, v: Optional[int]) -> Optional[int]:
+        """Validate TTL allowing 0 for permanent memories."""
+        if v is not None and v < 0:
+            raise ValueError("ttl_seconds must be non-negative (0 for permanent)")
+        return v
+
     def update_expiration(self, ttl_seconds: int) -> None:
         """Update expiration time based on TTL and policy."""
         from datetime import timedelta
@@ -199,8 +206,7 @@ class MemoryCreateRequest(SynapticBaseModel):
     )
     ttl_seconds: Optional[int] = Field(
         default=None,
-        ge=1,
-        description="Time to live in seconds"
+        description="Time to live in seconds (0 for permanent)"
     )
     tags: Optional[Dict[str, str]] = Field(
         default=None,

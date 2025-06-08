@@ -25,7 +25,7 @@ class SynapticBaseModel(BaseModel):
         extra='forbid',
         # Use ISO format for datetime serialization
         json_encoders={
-            datetime: lambda v: v.isoformat(),
+            datetime: lambda v: v.isoformat() if v is not None else None,
             UUID: lambda v: str(v),
         }
     )
