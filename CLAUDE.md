@@ -411,3 +411,41 @@ Each Claude instance operates with their own persistent branch (`claude-1`, `cla
 4. Claude proceeds with feature branch workflow from their `claude-X` branch
 
 This system allows unlimited parallel Claude Code sessions while maintaining clean git workflow and proper dev branch integration.
+
+## CRITICAL: Claude Code Development Lessons Learned
+
+**NEVER MAKE THESE MISTAKES AGAIN:**
+
+### 1. Git Workflow Violations
+- **NEVER push claude-# branches to remote** - These are personal local branches only
+- **ALWAYS create feature branches** for any code changes (feat/, fix/, refactor/, etc.)
+- **ALWAYS follow the workflow**: claude-# → feat/branch → PR to dev → merge back to claude-#
+
+### 2. Test-Before-Change Protocol
+- **NEVER make code changes without testing first**
+- **ALWAYS verify the change works** before committing
+- **Use proper testing approach**: Docker for server changes, unit tests for logic
+- **For CLI changes**: Test with Docker since that's the production deployment method
+
+### 3. Critical Workflow Steps
+1. **Before ANY code change**: Test current functionality to understand baseline
+2. **Create feature branch**: `git checkout -b feat/descriptive-name`
+3. **Make and test change**: Verify it works in appropriate environment
+4. **Commit to feature branch**: With descriptive messages
+5. **Push feature branch**: `git push -u origin feat/descriptive-name`
+6. **Create PR**: Feature branch → dev
+7. **After merge**: Sync back to claude-# branch
+
+### 4. Emergency Recovery Protocol
+If you accidentally push claude-# branch:
+```bash
+git push --delete origin claude-X  # Delete from remote immediately
+```
+
+### 5. Testing Methodology by Component
+- **CLI changes**: Test with Docker deployment (`docker-compose up --build`)
+- **Core logic**: Run unit tests (`python -m pytest`)
+- **Server functionality**: Test with appropriate MCP client
+- **Configuration**: Test with different environment setups
+
+**Remember**: Excitement about fixes is good, but proper process prevents disasters!
