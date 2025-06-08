@@ -1,7 +1,7 @@
 """RAG database implementation using ChromaDB with new models."""
 
 import asyncio
-from datetime import datetime
+from datetime import datetime, UTC
 from typing import Any, Dict, List, Optional
 from uuid import uuid4
 
@@ -142,26 +142,29 @@ class RAGDatabase(LoggerMixin):
             metadata = result["metadatas"][0] or {}
             
             # Extract system metadata
-            created_at_str = metadata.pop("created_at", datetime.utcnow().isoformat())
+            created_at_str = metadata.pop("created_at", datetime.now(UTC).isoformat())
             updated_at_str = metadata.pop("updated_at", None)
             embedding_model = metadata.pop("embedding_model", None)
             embedding_dimension = metadata.pop("embedding_dimension", None)
             
             # Parse timestamps
             created_at = datetime.fromisoformat(created_at_str.replace('Z', '+00:00'))
-            updated_at = None
+            
+            # Build document kwargs - only include updated_at if we have a value
+            doc_kwargs = {
+                "id": document_id,
+                "content": content,
+                "metadata": metadata,
+                "created_at": created_at,
+                "embedding_model": embedding_model,
+                "embedding_dimension": embedding_dimension,
+            }
+            
+            # Only include updated_at if we have a value, otherwise let model use default
             if updated_at_str:
-                updated_at = datetime.fromisoformat(updated_at_str.replace('Z', '+00:00'))
+                doc_kwargs["updated_at"] = datetime.fromisoformat(updated_at_str.replace('Z', '+00:00'))
 
-            document = Document(
-                id=document_id,
-                content=content,
-                metadata=metadata,
-                created_at=created_at,
-                updated_at=updated_at,
-                embedding_model=embedding_model,
-                embedding_dimension=embedding_dimension,
-            )
+            document = Document(**doc_kwargs)
 
             self.logger.debug("Document retrieved", document_id=document_id)
             return document
@@ -195,7 +198,7 @@ class RAGDatabase(LoggerMixin):
                 content=new_content,
                 metadata=new_metadata,
                 created_at=existing.created_at,
-                updated_at=datetime.utcnow(),
+                updated_at=datetime.now(UTC),
                 embedding_model=self.embedding_manager.model_name if self.embedding_manager else existing.embedding_model,
                 embedding_dimension=self.embedding_manager.dimension if self.embedding_manager else existing.embedding_dimension,
             )
@@ -293,7 +296,7 @@ class RAGDatabase(LoggerMixin):
                     continue
                 
                 # Extract system metadata
-                created_at_str = metadata.pop("created_at", datetime.utcnow().isoformat())
+                created_at_str = metadata.pop("created_at", datetime.now(UTC).isoformat())
                 updated_at_str = metadata.pop("updated_at", None)
                 embedding_model = metadata.pop("embedding_model", None)
                 embedding_dimension = metadata.pop("embedding_dimension", None)
