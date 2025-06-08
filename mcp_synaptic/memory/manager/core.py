@@ -6,7 +6,7 @@ from ...config.logging import LoggerMixin
 from ...config.settings import Settings
 from ...core.exceptions import MemoryError
 from ..storage import MemoryStorage, RedisMemoryStorage, SQLiteMemoryStorage
-from ...models.memory import Memory, MemoryQuery, MemoryStats, MemoryType
+from ...models.memory import Memory, MemoryQuery, MemoryStats, MemoryType, ExpirationPolicy
 from .operations import MemoryOperations
 from .queries import MemoryQueries
 
@@ -71,9 +71,9 @@ class MemoryManager(LoggerMixin):
         self,
         key: str,
         data: Dict,
-        memory_type: MemoryType = None,
+        memory_type: MemoryType = MemoryType.SHORT_TERM,
         ttl_seconds: Optional[int] = None,
-        expiration_policy = None,
+        expiration_policy = ExpirationPolicy.ABSOLUTE,
         tags: Optional[Dict[str, str]] = None,
         metadata: Optional[Dict] = None,
     ) -> Memory:
@@ -128,3 +128,14 @@ class MemoryManager(LoggerMixin):
         """Touch a memory to update its access time."""
         self._ensure_initialized()
         return await self._queries.touch(key)
+
+    def _get_default_ttl(self, memory_type: MemoryType) -> int:
+        """Get default TTL for a memory type."""
+        defaults = {
+            MemoryType.EPHEMERAL: 300,    # 5 minutes
+            MemoryType.SHORT_TERM: self.settings.DEFAULT_MEMORY_TTL_SECONDS,
+            MemoryType.LONG_TERM: 86400 * 7,  # 1 week
+            MemoryType.PERMANENT: 0,      # No expiration
+        }
+        
+        return defaults.get(memory_type, self.settings.DEFAULT_MEMORY_TTL_SECONDS)
