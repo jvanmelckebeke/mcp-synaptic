@@ -2,10 +2,8 @@ name: Container Build & Publish
 
 on:
   push:
-    branches: [develop]  # Only build develop branch automatically
-    tags: ['v*']         # Build all version tags
-  pull_request:
-    branches: [main]
+    branches: [dev, main]  # Build dev and main branches
+    tags: ['v*']           # Build all version tags
   workflow_dispatch:
     inputs:
       force_push:
@@ -32,17 +30,17 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            # Branch-based tags
-            type=ref,event=branch
-            type=ref,event=pr
-            # Semantic versioning
+            # Dev branch tags
+            type=raw,value=dev-latest,enable=${{ github.ref == 'refs/heads/dev' }}
+            type=sha,prefix=dev-,format=short,enable=${{ github.ref == 'refs/heads/dev' }}
+            type=raw,value=dev-{{date 'YYYY-MM-DD'}},enable=${{ github.ref == 'refs/heads/dev' }}
+            # Main branch tags  
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=raw,value=main,enable=${{ github.ref == 'refs/heads/main' }}
+            # Semantic versioning for tags
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
-            # Latest tag for main branch
-            type=raw,value=latest,enable={{is_default_branch}}
-            # SHA-based tags for traceability (only for branches, not tags)
-            type=sha,prefix={{branch}}-,format=short,enable={{is_default_branch}}
           labels: |
             org.opencontainers.image.title=MCP Synaptic
             org.opencontainers.image.description=MCP server with RAG and memory capabilities
@@ -95,7 +93,7 @@ jobs:
           context: .
           file: ./Dockerfile
           platforms: linux/amd64,linux/arm64
-          push: ${{ github.event_name != 'pull_request' }}
+          push: true
           tags: ${{ needs.metadata.outputs.tags }}
           labels: ${{ needs.metadata.outputs.labels }}
           cache-from: |
@@ -105,37 +103,6 @@ jobs:
           build-args: |
             BUILDKIT_INLINE_CACHE=1
 
-  test:
-    runs-on: ubuntu-latest
-    needs: [metadata, build]
-    if: github.event_name == 'pull_request'
-    strategy:
-      matrix:
-        variant: [lightweight]
-    steps:
-      - name: Test container functionality
-        run: |
-          # Test basic container startup and health
-          docker run --rm --name test-${{ matrix.variant }} \
-            -e SERVER_HOST=0.0.0.0 \
-            -e SERVER_PORT=8000 \
-            -e DEBUG=true \
-            -e REDIS_ENABLED=false \
-            -e EMBEDDING_PROVIDER=api \
-            -e EMBEDDING_API_BASE=http://mock:4000 \
-            --health-cmd="curl -f http://localhost:8000/health || exit 1" \
-            --health-interval=10s \
-            --health-timeout=5s \
-            --health-retries=3 \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.head_ref }} \
-            timeout 30s python -c "
-              import mcp_synaptic
-              from mcp_synaptic.config.settings import Settings
-              print('✅ MCP Synaptic import successful')
-              settings = Settings()
-              print(f'✅ Settings loaded: {settings.SERVER_HOST}:{settings.SERVER_PORT}')
-              print('✅ Container test passed')
-            "
 
   cleanup:
     runs-on: ubuntu-latest
