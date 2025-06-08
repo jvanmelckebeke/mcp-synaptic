@@ -1,0 +1,32 @@
+# Documentation Links Reference
+
+This file contains important documentation links for reference during development.
+
+## FastMCP Documentation
+- https://gofastmcp.com/getting-started/welcome - Getting Started Guide
+- https://gofastmcp.com/servers/tools - Tool Development and Response Formats
+- https://gofastmcp.com/servers/resources - Resources & Templates
+- https://gofastmcp.com/servers/fastmcp - The FastMCP Server
+- https://gofastmcp.com/clients/client - Client Overview
+- https://github.com/jlowin/fastmcp - FastMCP GitHub Repository
+- https://pypi.org/project/fastmcp/2.2.0/ - FastMCP PyPI Package
+
+## FastMCP Tutorials & Guides
+- https://www.firecrawl.dev/blog/fastmcp-tutorial-building-mcp-servers-python - FastMCP Tutorial: Building MCP Servers in Python From Scratch
+- https://dev.to/mayankcse/fastmcp-simplifying-ai-context-management-with-the-model-context-protocol-37l9 - FastMCP: Simplifying AI Context Management
+
+## Model Context Protocol (MCP)
+- https://spec.modelcontextprotocol.io/ - MCP Specification
+- https://github.com/modelcontextprotocol/python-sdk - MCP Python SDK
+
+## Related Technologies
+- https://pydantic.dev/ - Pydantic Documentation (used for data validation)
+- https://fastapi.tiangolo.com/ - FastAPI Documentation (underlying web framework)
+- https://www.starlette.io/ - Starlette Documentation (ASGI framework)
+
+## Issue References
+- FastMCP Text Response Format: Returns "type: text" and "text: ..." structure
+  - This is standard MCP protocol format for text content
+  - FastMCP automatically converts return values to appropriate MCP content format
+  - Dict/list/Pydantic models are serialized to JSON string
+  - Configuration possible via tool_serializer function in server creation
