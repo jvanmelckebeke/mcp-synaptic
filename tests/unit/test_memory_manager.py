@@ -8,7 +8,7 @@ from mcp_synaptic.memory.manager import MemoryManager
 from mcp_synaptic.memory.storage import MemoryStorage
 from mcp_synaptic.models.memory import Memory, MemoryType, MemoryQuery, MemoryStats
 from mcp_synaptic.config.settings import Settings
-from mcp_synaptic.core.exceptions import MemoryError, ValidationError
+from mcp_synaptic.core.exceptions import MemoryError, MemoryNotFoundError, ValidationError
 
 
 @pytest.fixture
@@ -18,6 +18,7 @@ def mock_settings():
     settings.DEFAULT_MEMORY_TTL_SECONDS = 3600
     settings.MEMORY_CLEANUP_INTERVAL_SECONDS = 300
     settings.REDIS_ENABLED = False
+    settings.MAX_MEMORY_ENTRIES = 10000
     return settings
 
 
@@ -253,11 +254,11 @@ class TestMemoryManagerCRUD:
         # Arrange
         mock_memory_storage.retrieve.return_value = None
         
-        # Act
-        result = await memory_manager.update("nonexistent", data={"data": "new"})
+        # Act & Assert
+        with pytest.raises(MemoryNotFoundError) as exc_info:
+            await memory_manager.update("nonexistent", data={"data": "new"})
         
-        # Assert
-        assert result is None
+        assert "nonexistent" in str(exc_info.value)
         mock_memory_storage.store.assert_not_called()
 
     @pytest.mark.asyncio
