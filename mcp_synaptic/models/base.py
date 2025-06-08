@@ -15,8 +15,8 @@ class SynapticBaseModel(BaseModel):
     """Base model with common configuration for all MCP Synaptic models."""
     
     model_config = ConfigDict(
-        # Use enum values instead of enum objects in serialization
-        use_enum_values=True,
+        # Keep enum objects in memory, serialize values only when needed
+        use_enum_values=False,
         # Allow population by field name or alias
         populate_by_name=True,
         # Validate assignment after model creation
