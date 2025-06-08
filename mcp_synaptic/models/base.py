@@ -1,6 +1,6 @@
 """Base model classes and generics for MCP Synaptic."""
 
-from datetime import datetime
+from datetime import datetime, UTC
 from typing import Any, Dict, Generic, List, Optional, TypeVar
 from uuid import UUID, uuid4
 
@@ -23,11 +23,6 @@ class SynapticBaseModel(BaseModel):
         validate_assignment=True,
         # Include extra validation info in errors
         extra='forbid',
-        # Use ISO format for datetime serialization
-        json_encoders={
-            datetime: lambda v: v.isoformat() if v is not None else None,
-            UUID: lambda v: str(v),
-        }
     )
     
 
@@ -36,11 +31,11 @@ class TimestampedModel(SynapticBaseModel):
     """Base model for entities with timestamps."""
     
     created_at: datetime = Field(
-        default_factory=datetime.utcnow,
+        default_factory=lambda: datetime.now(UTC),
         description="When the entity was created"
     )
     updated_at: datetime = Field(
-        default_factory=datetime.utcnow,
+        default_factory=lambda: datetime.now(UTC),
         description="When the entity was last updated"
     )
 
@@ -115,7 +110,7 @@ class StatsModel(SynapticBaseModel):
 class SearchQuery(SynapticBaseModel):
     """Base model for search queries."""
     
-    query: str = Field(description="Search query string")
+    query: str = Field(default="", description="Search query string")
     limit: int = Field(default=10, ge=1, le=100, description="Maximum results to return")
     offset: int = Field(default=0, ge=0, description="Number of results to skip")
 

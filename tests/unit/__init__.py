@@ -1,1 +1,1 @@
-"""Unit tests for MCP Synaptic."""
+# True unit tests with full mocking

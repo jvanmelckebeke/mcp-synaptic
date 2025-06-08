@@ -1,6 +1,6 @@
 """Memory manager for handling memory operations with expiration."""
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from typing import Dict, List, Optional
 
 from ..config.logging import LoggerMixin
@@ -112,7 +112,7 @@ class MemoryManager(LoggerMixin):
                 return None
 
             # Check if expired
-            if memory.is_expired():
+            if memory.is_expired:
                 # Remove expired memory
                 await self.storage.delete(key)
                 self.logger.debug("Removed expired memory", key=key)
@@ -175,7 +175,7 @@ class MemoryManager(LoggerMixin):
                 memory.metadata.update(metadata)
 
             # Update timestamps
-            memory.updated_at = datetime.utcnow()
+            memory.updated_at = datetime.now(UTC)
 
             # Extend TTL if requested
             if extend_ttl is not None:
