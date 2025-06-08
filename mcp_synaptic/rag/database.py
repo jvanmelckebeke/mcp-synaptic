@@ -93,8 +93,8 @@ class RAGDatabase(LoggerMixin):
                 id=document_id or str(uuid4()),
                 content=content,
                 metadata=metadata or {},
-                embedding_model=self.embedding_manager.model_name if self.embedding_manager else None,
-                embedding_dimension=self.embedding_manager.dimension if self.embedding_manager else None,
+                embedding_model=self.settings.EMBEDDING_MODEL if self.embedding_manager else None,
+                embedding_dimension=self.embedding_manager.get_embedding_dimension() if self.embedding_manager else None,
             )
 
             # Generate embedding
@@ -199,8 +199,8 @@ class RAGDatabase(LoggerMixin):
                 metadata=new_metadata,
                 created_at=existing.created_at,
                 updated_at=datetime.now(UTC),
-                embedding_model=self.embedding_manager.model_name if self.embedding_manager else existing.embedding_model,
-                embedding_dimension=self.embedding_manager.dimension if self.embedding_manager else existing.embedding_dimension,
+                embedding_model=self.settings.EMBEDDING_MODEL if self.embedding_manager else existing.embedding_model,
+                embedding_dimension=self.embedding_manager.get_embedding_dimension() if self.embedding_manager else existing.embedding_dimension,
             )
 
             # Generate new embedding if content changed
