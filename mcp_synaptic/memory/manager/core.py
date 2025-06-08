@@ -6,7 +6,7 @@ from ...config.logging import LoggerMixin
 from ...config.settings import Settings
 from ...core.exceptions import MemoryError
 from ..storage import MemoryStorage, RedisMemoryStorage, SQLiteMemoryStorage
-from ...models.memory import Memory, MemoryQuery, MemoryStats, MemoryType
+from ...models.memory import Memory, MemoryQuery, MemoryStats, MemoryType, ExpirationPolicy
 from .operations import MemoryOperations
 from .queries import MemoryQueries
 
@@ -71,9 +71,9 @@ class MemoryManager(LoggerMixin):
         self,
         key: str,
         data: Dict,
-        memory_type: MemoryType = None,
+        memory_type: MemoryType = MemoryType.SHORT_TERM,
         ttl_seconds: Optional[int] = None,
-        expiration_policy = None,
+        expiration_policy = ExpirationPolicy.ABSOLUTE,
         tags: Optional[Dict[str, str]] = None,
         metadata: Optional[Dict] = None,
     ) -> Memory:
