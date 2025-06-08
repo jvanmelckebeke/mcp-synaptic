@@ -4,7 +4,7 @@ import asyncio
 import json
 import sqlite3
 from abc import ABC, abstractmethod
-from datetime import datetime
+from datetime import datetime, UTC
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -211,7 +211,7 @@ class SQLiteMemoryStorage(MemoryStorage):
             
             if not query.include_expired:
                 conditions.append("(expires_at IS NULL OR expires_at > ?)")
-                values.append(datetime.utcnow().isoformat())
+                values.append(datetime.now(UTC).isoformat())
             
             where_clause = " AND ".join(conditions) if conditions else "1=1"
             sql = f"SELECT * FROM memories WHERE {where_clause}"
@@ -236,7 +236,7 @@ class SQLiteMemoryStorage(MemoryStorage):
 
         try:
             sql = "DELETE FROM memories WHERE expires_at IS NOT NULL AND expires_at <= ?"
-            cursor = await self._connection.execute(sql, (datetime.utcnow().isoformat(),))
+            cursor = await self._connection.execute(sql, (datetime.now(UTC).isoformat(),))
             await self._connection.commit()
             
             return cursor.rowcount
@@ -263,7 +263,7 @@ class SQLiteMemoryStorage(MemoryStorage):
             # Expired memories
             cursor = await self._connection.execute(
                 "SELECT COUNT(*) FROM memories WHERE expires_at IS NOT NULL AND expires_at <= ?",
-                (datetime.utcnow().isoformat(),)
+                (datetime.now(UTC).isoformat(),)
             )
             expired = (await cursor.fetchone())[0]
             
@@ -391,7 +391,7 @@ class RedisMemoryStorage(MemoryStorage):
                         continue
                     if query.memory_types and memory.memory_type not in query.memory_types:
                         continue
-                    if not query.include_expired and memory.is_expired():
+                    if not query.include_expired and memory.is_expired:
                         continue
                     
                     memories.append(memory)

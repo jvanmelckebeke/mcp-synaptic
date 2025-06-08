@@ -1,6 +1,6 @@
 """Memory manager for handling memory operations with expiration."""
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from typing import Dict, List, Optional
 
 from ..config.logging import LoggerMixin
@@ -175,7 +175,7 @@ class MemoryManager(LoggerMixin):
                 memory.metadata.update(metadata)
 
             # Update timestamps
-            memory.updated_at = datetime.utcnow()
+            memory.updated_at = datetime.now(UTC)
 
             # Extend TTL if requested
             if extend_ttl is not None:
