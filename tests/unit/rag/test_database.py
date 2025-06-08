@@ -67,7 +67,7 @@ class TestRAGDatabase:
         
         # Mock ChromaDB initialization
         with patch('chromadb.PersistentClient', return_value=client):
-            with patch('mcp_synaptic.rag.database.EmbeddingManager', return_value=mock_embedding_manager):
+            with patch('mcp_synaptic.rag.database.core.EmbeddingManager', return_value=mock_embedding_manager):
                 await database.initialize()
         
         # Set mocked components
@@ -89,7 +89,7 @@ class TestRAGDatabase:
             database = RAGDatabase(test_settings)
             
             with patch('chromadb.PersistentClient', return_value=client):
-                with patch('mcp_synaptic.rag.database.EmbeddingManager', return_value=mock_embedding_manager):
+                with patch('mcp_synaptic.rag.database.core.EmbeddingManager', return_value=mock_embedding_manager):
                     await database.initialize()
             
             assert database._initialized is True
@@ -125,7 +125,7 @@ class TestRAGDatabase:
             mock_manager.initialize.side_effect = Exception("Embedding init failed")
             
             with patch('chromadb.PersistentClient', return_value=client):
-                with patch('mcp_synaptic.rag.database.EmbeddingManager', return_value=mock_manager):
+                with patch('mcp_synaptic.rag.database.core.EmbeddingManager', return_value=mock_manager):
                     with pytest.raises(RAGError, match="RAG database initialization failed"):
                         await database.initialize()
 
