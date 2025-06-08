@@ -186,6 +186,36 @@ cd docker && docker-compose -f docker-compose.yaml -f overrides/laptop.yaml -f v
 - **Version Tag Format**: Always `v` prefix followed by semantic version (v1.2.3)
 - **When in doubt**: Err on the side of incrementing minor version for features, patch for fixes
 
+**Git Branching Workflow:**
+- **Main Development Branch**: `dev` - primary development branch where all feature work merges
+- **Feature Branches**: Use descriptive branch names with prefixes:
+  - `feat/feature-name` - New features and major functionality
+  - `fix/bug-description` - Bug fixes and patches  
+  - `refactor/component-name` - Code refactoring and improvements
+  - `docs/section-name` - Documentation updates
+  - `test/feature-name` - Test additions and improvements
+
+**Branch Workflow Process:**
+1. **Start from dev**: Always branch off from the latest `dev` branch
+2. **Create feature branch**: `git checkout -b feat/my-feature` 
+3. **Implement changes**: Make commits with descriptive messages
+4. **Create Pull Request**: Submit PR to merge feature branch into `dev`
+5. **Auto-merge allowed**: Most PRs can be auto-merged after basic validation
+6. **Delete feature branch**: Clean up after successful merge
+
+**Pull Request Guidelines:**
+- **Target**: All feature branches merge into `dev` branch
+- **Title**: Use conventional commit format (feat: add new feature)
+- **Description**: Include brief summary of changes and testing approach
+- **Auto-merge**: Allowed for straightforward changes after validation
+- **Review required**: Complex architectural changes should get user review
+
+**Branch Protection:**
+- `dev` branch serves as integration branch for ongoing development
+- Feature branches are short-lived and deleted after merge
+- Keep feature branches focused on single functionality
+- Regular commits to feature branches for progress tracking
+
 **Backward Compatibility Policy:**
 - **DO NOT** consider backward compatibility when making architectural changes
 - This is a new project with rapidly evolving architecture
