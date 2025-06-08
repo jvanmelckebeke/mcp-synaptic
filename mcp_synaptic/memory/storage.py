@@ -391,7 +391,7 @@ class RedisMemoryStorage(MemoryStorage):
                         continue
                     if query.memory_types and memory.memory_type not in query.memory_types:
                         continue
-                    if not query.include_expired and memory.is_expired():
+                    if not query.include_expired and memory.is_expired:
                         continue
                     
                     memories.append(memory)

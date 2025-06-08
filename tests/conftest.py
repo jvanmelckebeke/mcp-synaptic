@@ -77,6 +77,10 @@ async def memory_storage(test_settings: Settings) -> AsyncGenerator[SQLiteMemory
     await storage.initialize()
     yield storage
     await storage.close()
+    # Clean up database file
+    db_path = Path(test_settings.SQLITE_PATH)
+    if db_path.exists():
+        db_path.unlink()
 
 
 @pytest_asyncio.fixture
@@ -86,6 +90,10 @@ async def memory_manager(test_settings: Settings) -> AsyncGenerator[MemoryManage
     await manager.initialize()
     yield manager
     await manager.close()
+    # Clean up database file
+    db_path = Path(test_settings.SQLITE_PATH)
+    if db_path.exists():
+        db_path.unlink()
 
 
 @pytest.fixture

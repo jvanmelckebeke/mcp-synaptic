@@ -486,7 +486,7 @@ class TestRedisMemoryStorage:
             for i, memory in enumerate(test_memories):
                 yield f"memory:redis_{i+1}"
         
-        storage._redis.scan_iter.return_value = mock_scan_iter("memory:*")
+        storage._redis.scan_iter = mock_scan_iter
         
         # Mock get to return memory data
         def mock_get(key):
@@ -517,7 +517,7 @@ class TestRedisMemoryStorage:
             for i in range(3):
                 yield f"memory:key_{i}"
         
-        storage._redis.scan_iter.return_value = mock_scan_iter("memory:*")
+        storage._redis.scan_iter = mock_scan_iter
         
         stats = await storage.get_stats()
         
@@ -540,9 +540,10 @@ class TestRedisMemoryStorage:
 
     async def test_close_cleans_up_connection(self, storage: RedisMemoryStorage):
         """Test close() cleans up Redis connection."""
+        redis_mock = storage._redis
         await storage.close()
         
-        storage._redis.close.assert_called_once()
+        redis_mock.close.assert_called_once()
         assert storage._redis is None
 
 

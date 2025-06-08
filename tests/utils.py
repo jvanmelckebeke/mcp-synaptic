@@ -215,6 +215,14 @@ class MockFactory:
         redis_mock.delete.return_value = 1
         redis_mock.keys.return_value = []
         redis_mock.close.return_value = None
+        
+        # Create proper async iterator for scan_iter
+        async def mock_scan_iter(match="*"):
+            """Mock async iterator for Redis scan_iter."""
+            return
+            yield  # This makes it an async generator
+        
+        redis_mock.scan_iter = mock_scan_iter
         return redis_mock
 
 
