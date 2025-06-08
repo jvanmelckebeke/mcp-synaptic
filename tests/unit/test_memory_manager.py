@@ -139,13 +139,6 @@ class TestMemoryManagerCRUD:
         data = {"test": "data"}
         memory_type = MemoryType.SHORT_TERM
         
-        expected_memory = Memory(
-            key=key,
-            data=data,
-            memory_type=memory_type
-        )
-        mock_memory_storage.store.return_value = expected_memory
-        
         # Act
         result = await memory_manager.add(
             key=key,
@@ -159,7 +152,10 @@ class TestMemoryManagerCRUD:
         assert stored_memory.key == key
         assert stored_memory.data == data
         assert stored_memory.memory_type == memory_type
-        assert result == expected_memory
+        assert stored_memory.ttl_seconds == 3600  # Default TTL
+        assert stored_memory.expires_at is not None
+        # The result should be the same object that was stored
+        assert result == stored_memory
 
     @pytest.mark.asyncio
     async def test_add_memory_with_default_ttl(self, memory_manager, mock_memory_storage, mock_settings):
