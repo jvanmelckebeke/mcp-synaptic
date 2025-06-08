@@ -39,8 +39,8 @@ class TimestampedModel(SynapticBaseModel):
         default_factory=datetime.utcnow,
         description="When the entity was created"
     )
-    updated_at: Optional[datetime] = Field(
-        default=None,
+    updated_at: datetime = Field(
+        default_factory=datetime.utcnow,
         description="When the entity was last updated"
     )
 
