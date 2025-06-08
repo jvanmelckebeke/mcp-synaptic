@@ -112,7 +112,7 @@ class MemoryManager(LoggerMixin):
                 return None
 
             # Check if expired
-            if memory.is_expired():
+            if memory.is_expired:
                 # Remove expired memory
                 await self.storage.delete(key)
                 self.logger.debug("Removed expired memory", key=key)
