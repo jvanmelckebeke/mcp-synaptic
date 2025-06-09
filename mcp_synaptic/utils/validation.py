@@ -12,7 +12,9 @@ from the new modular structure.
 """
 
 # Import all validation functions from the new package structure
-from .validation import *
+from .validation.memory import *
+from .validation.documents import *  
+from .validation.common import *
 
 # Re-export everything for backward compatibility
 from .validation import __all__

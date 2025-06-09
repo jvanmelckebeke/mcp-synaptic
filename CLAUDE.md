@@ -217,6 +217,13 @@ cd docker && docker-compose -f docker-compose.yaml -f overrides/laptop.yaml -f v
 - Local embeddings require `--extra local-embeddings` and significantly increase image size
 - Redis is optional - SQLite works fine for single-instance deployments
 
+**Docker Troubleshooting:**
+- **CRITICAL**: Always use `/app/.venv/bin/python` when running Python commands in containers
+- System `python` command will NOT work - dependencies are in the virtual environment
+- Import errors like "No module named 'pydantic'" indicate wrong Python interpreter
+- Correct testing: `docker run container /app/.venv/bin/python -c "import mcp_synaptic"`
+- The Dockerfile CMD uses the correct interpreter automatically
+
 ## Development Workflow
 
 **Semantic Versioning Responsibility:**
