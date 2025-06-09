@@ -155,11 +155,6 @@ cython_debug/
 
 # Memory and RAG data
 data/
-memory/
-!mcp_synaptic/memory/
-embeddings/
-!mcp_synaptic/rag/embeddings/
 
 # Logs
 logs/
-*.log
